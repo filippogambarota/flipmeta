@@ -8,8 +8,9 @@ flipmeta <- function(yi,
                      method = NULL,
                      subset = NULL,
                      interval = c(0, 1000),
-                     tol = .Machine$double.eps^0.25) {
-
+                     tol = .Machine$double.eps^0.25,
+                     metafor = FALSE) {
+    rma <- NULL
     if(missing(vi)){
         fit <- yi
         if (!inherits(fit, "rma") || inherits(fit, "rma.mv")) {
@@ -21,6 +22,7 @@ flipmeta <- function(yi,
         mods <- fit$formula.mods
         method <- fit$method
         data <- fit$data
+        rma <- fit
     } else{
         subset <- substitute(subset)
         if(!is.null(subset)){
@@ -39,6 +41,9 @@ flipmeta <- function(yi,
         X <- model.matrix(mods, data = sdata)
         if (is.null(data) || !is.data.frame(data)) {
             stop("When 'vi' is supplied, 'data' must be a data.frame.")
+        }
+        if(metafor){
+            rma <- rma(yi, vi, mods = mods, method = method, data = sdata)
         }
     }
 
@@ -185,7 +190,8 @@ flipmeta <- function(yi,
         k = k,
         kall = kall,
         B = B,
-        mods = mods
+        mods = mods,
+        rma = rma
     )
 
     class(out) <- unique(c("flipmeta", class(out)))
