@@ -33,7 +33,8 @@
         vi = vi,
         X = X,
         k = length(yi),
-        method = fit$method
+        method = fit$method,
+        int.only = fit$int.only
     )
 }
 
