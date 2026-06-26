@@ -1,3 +1,4 @@
+#' @export
 .join_flipmeta <- function(fits,
                            B = 5000,
                            flips = NULL,

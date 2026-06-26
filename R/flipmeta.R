@@ -261,6 +261,7 @@ flipmeta <- function(fit,
     out
 }
 
+#' @export
 .flipmeta_obs_names <- function(fit) {
 
     X <- as.matrix(fit$X)
@@ -274,6 +275,7 @@ flipmeta <- function(fit,
     as.character(rn)
 }
 
+#' @export
 .flipmeta_coef_names <- function(fit) {
 
     X <- as.matrix(fit$X)
@@ -287,6 +289,7 @@ flipmeta <- function(fit,
     nms
 }
 
+#' @export
 .resolve_tested_coeffs <- function(fits, tested_coeffs = NULL) {
 
     all_names <- lapply(fits, .flipmeta_coef_names)
