@@ -2,4 +2,12 @@
 
 S3method(print,flipmeta)
 S3method(summary,flipmeta)
+export(.fit_null_metafor_X)
+export(.flipmeta_coef_names)
+export(.flipmeta_obs_names)
+export(.join_flipmeta)
+export(.pb)
+export(.resolve_tested_coeffs)
+export(.std_flip_scores_meta)
+export(.tau2_h0_mu0)
 export(flipmeta)

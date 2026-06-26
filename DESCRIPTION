@@ -12,6 +12,5 @@ Imports:
     flipscores,
     metafor
 Config/roxygen2/version: 8.0.0
-
 Remotes:
     livioivil/flipscores@test
