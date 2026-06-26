@@ -1,261 +1,204 @@
-.extract_rma_input <- function(fit) {
-
-    if (!inherits(fit, "rma")) {
-        stop("fit must be a metafor rma object.")
-    }
-
-    yi <- as.numeric(fit$yi)
-
-    if (!is.null(fit$vi)) {
-        vi <- as.numeric(fit$vi)
-    } else if (!is.null(fit$V) && is.matrix(fit$V)) {
-        if (all(abs(fit$V - diag(diag(fit$V))) < sqrt(.Machine$double.eps))) {
-            vi <- diag(fit$V)
-        } else {
-            stop("This implementation currently supports only diagonal V / univariate rma objects.")
-        }
-    } else {
-        stop("Could not extract vi from fit.")
-    }
-
-    if (!is.null(fit$X)) {
-        X <- as.matrix(fit$X)
-    } else {
-        stop("Could not extract model matrix X from fit.")
-    }
-
-    if (is.null(colnames(X))) {
-        colnames(X) <- paste0("X", seq_len(ncol(X)))
-    }
-
-    list(
-        yi = yi,
-        vi = vi,
-        X = X,
-        k = length(yi),
-        method = fit$method,
-        int.only = fit$int.only
-    )
-}
-
-.rma_fast_X <- function(yi, vi, X,
-                       beta = NULL,
-                       method = c("DL", "REML"),
-                       interval = c(0, 1000),
-                       tol = .Machine$double.eps^0.25) {
-
-    method <- match.arg(method)
+.fit_null_metafor_X <- function(yi,
+                                vi,
+                                X,
+                                j,
+                                method = "REML",
+                                interval = c(0, 1000),
+                                tol = .Machine$double.eps^0.25) {
 
     yi <- as.numeric(yi)
     vi <- as.numeric(vi)
     X  <- as.matrix(X)
 
-    if (length(yi) != length(vi)) {
-        stop("yi and vi must have the same length.")
+    k <- nrow(X)
+    p <- ncol(X)
+
+    if (j < 1L || j > p) {
+        stop("'j' must identify one column of X.")
     }
 
-    if (nrow(X) != length(yi)) {
-        stop("nrow(X) must equal length(yi).")
-    }
+    tested <- colnames(X)[j]
 
-    if (is.null(beta)) {
-        beta <- rep(NA_real_, ncol(X))
-    }
+    Z  <- X[, -j, drop = FALSE]
+    xj <- X[,  j, drop = FALSE]
 
-    if (length(beta) != ncol(X)) {
-        stop("Length of beta must match ncol(X).")
-    }
+    if (ncol(Z) == 0L) {
 
-    free  <- is.na(beta)
-    fixed <- !is.na(beta)
-
-    Xfree  <- X[, free, drop = FALSE]
-    Xfixed <- X[, fixed, drop = FALSE]
-
-    yi_adj <- yi
-
-    if (any(fixed)) {
-        yi_adj <- yi - as.vector(Xfixed %*% beta[fixed])
-    }
-
-    k <- length(yi)
-    p <- ncol(Xfree)
-
-    if (p > 0L && qr(Xfree)$rank < p) {
-        stop("Xfree is rank deficient.")
-    }
-
-    if (method == "DL") {
-
-        wi_fe <- 1 / vi
-
-        if (p > 0L) {
-            XtWX_fe <- crossprod(Xfree, Xfree * wi_fe)
-            XtWy_fe <- crossprod(Xfree, yi_adj * wi_fe)
-
-            Bfree_fe <- solve(XtWX_fe, XtWy_fe)
-
-            beta_fe <- beta
-            beta_fe[free] <- as.vector(Bfree_fe)
-
-            fitted_fe <- as.vector(X %*% beta_fe)
-            resid_fe <- yi - fitted_fe
-
-            C <- sum(wi_fe) -
-                sum(diag(
-                    solve(XtWX_fe) %*%
-                        crossprod(Xfree, Xfree * wi_fe^2)
-                ))
-
-        } else {
-            beta_fe <- beta
-            fitted_fe <- as.vector(X %*% beta_fe)
-            resid_fe <- yi - fitted_fe
-
-            C <- sum(wi_fe)
-        }
-
-        QE <- sum(wi_fe * resid_fe^2)
-
-        tau2 <- max(0, (QE - (k - p)) / C)
-
-        wi_re <- 1 / (vi + tau2)
-
-        if (p > 0L) {
-            XtWX_re <- crossprod(Xfree, Xfree * wi_re)
-            XtWy_re <- crossprod(Xfree, yi_adj * wi_re)
-
-            Bfree_re <- solve(XtWX_re, XtWy_re)
-
-            beta[free] <- as.vector(Bfree_re)
-        }
-
-    } else if (method == "REML") {
-
-        neg_reml <- function(tau2) {
-
-            wi <- 1 / (vi + tau2)
-
-            logdet_A <- sum(log(vi + tau2))
-
-            if (p > 0L) {
-                XtWX <- crossprod(Xfree, Xfree * wi)
-                XtWy <- crossprod(Xfree, yi_adj * wi)
-
-                Bfree <- solve(XtWX, XtWy)
-
-                resid <- yi_adj - as.vector(Xfree %*% Bfree)
-
-                logdet_XtWX <- as.numeric(
-                    determinant(XtWX, logarithm = TRUE)$modulus
-                )
-            } else {
-                resid <- yi_adj
-                logdet_XtWX <- 0
-            }
-
-            quad <- sum(wi * resid^2)
-
-            0.5 * (logdet_A + logdet_XtWX + quad)
-        }
-
-        opt <- optimize(
-            f = neg_reml,
+        tau2_0 <- .tau2_h0_mu0(
+            yi = yi,
+            vi = vi,
+            method = if (method == "DL") "DL" else "ML",
             interval = interval,
             tol = tol
         )
 
-        tau2 <- opt$minimum
+        beta0 <- numeric(0)
+        mu0   <- rep(0, k)
+        ei0   <- as.numeric(yi)
+        wi0   <- as.numeric(1 / (vi + tau2_0))
+        fit0  <- NULL
 
-        wi_re <- 1 / (vi + tau2)
+    } else {
 
-        if (p > 0L) {
-            XtWX_re <- crossprod(Xfree, Xfree * wi_re)
-            XtWy_re <- crossprod(Xfree, yi_adj * wi_re)
+        fit0 <- metafor::rma.uni(
+            yi = yi,
+            vi = vi,
+            mods = Z,
+            intercept = FALSE,
+            method = method
+        )
 
-            Bfree_re <- solve(XtWX_re, XtWy_re)
-
-            beta[free] <- as.vector(Bfree_re)
-        }
+        tau2_0 <- fit0$tau2
+        beta0  <- as.numeric(fit0$beta)
+        mu0    <- as.numeric(fitted(fit0))
+        ei0    <- as.numeric(yi - mu0)
+        wi0    <- as.numeric(1 / (vi + tau2_0))
     }
-
-    names(beta) <- colnames(X)
 
     list(
-        beta = beta,
-        tau2 = tau2,
-        method = method
+        id       = j,
+        tested   = tested,
+        tau2_0   = tau2_0,
+        beta0    = beta0,
+        mu0      = mu0,
+        ei0      = ei0,
+        wi0      = wi0,
+        Z        = Z,
+        x        = xj,
+        fit0     = fit0
     )
 }
 
-rma_fast <- function(yi, vi, data, mods = NULL, beta = NULL,
-                     method = c("DL", "REML"),
-                     interval = c(0, 1000),
-                     tol = .Machine$double.eps^0.25) {
+.fit_null_metafor_X <- function(yi,
+                                vi,
+                                X,
+                                j,
+                                method = "REML",
+                                interval = c(0, 1000),
+                                tol = .Machine$double.eps^0.25) {
 
-    method <- match.arg(method)
+    yi <- as.numeric(yi)
+    vi <- as.numeric(vi)
+    X  <- as.matrix(X)
 
-    yi_name <- deparse(substitute(yi))
-    vi_name <- deparse(substitute(vi))
+    k <- nrow(X)
+    p <- ncol(X)
 
-    yi <- data[[yi_name]]
-    vi <- data[[vi_name]]
-
-    if (is.null(mods)) {
-        mods <- ~ 1
+    if (j < 1L || j > p) {
+        stop("'j' must identify one column of X.")
     }
 
-    X <- model.matrix(mods, data = data)
+    tested <- colnames(X)[j]
 
-    .rma_fast_X(
-        yi = yi,
-        vi = vi,
-        X = X,
-        beta = beta,
-        method = method,
-        interval = interval,
-        tol = tol
-    )
-}
-
-.make_flips <- function(n_obs, n_flips = 5000, flips = NULL){
-    if (is.null(flips)) {
-        flips <- matrix(c(rep(1, n_obs), sample(c(-1L, +1L), (n_flips - 1) *
-                                           n_obs, replace = TRUE)), n_flips, n_obs, byrow = TRUE)
-    } else {
-        flips <- as.matrix(flips)
-
-        if (!all(flips[1, ] == 1)) {
-            stop("The first row of flips must be all +1.")
-        }
-    }
-    return(flips)
-}
-
-.std_flip_scores_meta <- function(nu, x, Z, w, flips, tol = .Machine$double.eps^0.25) {
-
-    k <- length(nu)
-    sqrt_w <- sqrt(w)
+    Z  <- X[, -j, drop = FALSE]
+    xj <- X[,  j, drop = FALSE]
 
     if (ncol(Z) == 0L) {
-        P <- diag(k)
-    } else {
-        Zw <- Z * sqrt_w
-        G  <- crossprod(Zw)
 
-        P <- diag(k) -
-            Zw %*% solve(G) %*% t(Zw)
+        tau2_0 <- .tau2_h0_mu0(
+            yi = yi,
+            vi = vi,
+            method = if (method == "DL") "DL" else "ML",
+            interval = interval,
+            tol = tol
+        )
+
+        beta0 <- numeric(0)
+        mu0   <- rep(0, k)
+        ei0   <- as.numeric(yi)
+        wi0   <- as.numeric(1 / (vi + tau2_0))
+        fit0  <- NULL
+
+    } else {
+
+        fit0 <- metafor::rma.uni(
+            yi = yi,
+            vi = vi,
+            mods = Z,
+            intercept = FALSE,
+            method = method
+        )
+
+        tau2_0 <- fit0$tau2
+        beta0  <- as.numeric(fit0$beta)
+        mu0    <- as.numeric(fitted(fit0))
+        ei0    <- as.numeric(yi - mu0)
+        wi0    <- as.numeric(1 / (vi + tau2_0))
     }
 
-    xw <- drop(sqrt_w * x)
-    px <- drop(P %*% xw)
+    list(
+        id       = j,
+        tested   = tested,
+        tau2_0   = tau2_0,
+        beta0    = beta0,
+        mu0      = mu0,
+        ei0      = ei0,
+        wi0      = wi0,
+        Z        = Z,
+        x        = xj,
+        fit0     = fit0
+    )
+}
+
+.std_flip_scores_meta <- function(nu,
+                                  x,
+                                  Z,
+                                  w,
+                                  flips,
+                                  tol = .Machine$double.eps^0.25) {
+
+    nu <- as.numeric(nu)
+    x  <- as.numeric(x)
+    Z  <- as.matrix(Z)
+    w  <- as.numeric(w)
+
+    k <- length(nu)
+
+    if (length(x) != k) {
+        stop("'x' and 'nu' must have the same length.")
+    }
+
+    if (length(w) != k) {
+        stop("'w' and 'nu' must have the same length.")
+    }
+
+    if (nrow(flips) < 1L) {
+        stop("'flips' must have at least one row.")
+    }
+
+    if (ncol(flips) != k) {
+        stop("ncol(flips) must equal length(nu).")
+    }
+
+    if (ncol(Z) == 0L) {
+
+        P <- diag(k)
+
+        px <- x
+
+    } else {
+
+        sqrt_w <- sqrt(w)
+
+        Zw <- Z * sqrt_w
+
+        qr_Zw <- qr(Zw, tol = tol)
+
+        Q <- qr.Q(qr_Zw)
+
+        P <- diag(k) - tcrossprod(Q)
+
+        px <- as.numeric(P %*% (x * sqrt_w))
+    }
 
     S <- drop(flips %*% nu)
 
-    V <- numeric(nrow(flips))
+    V <- rep(NA_real_, nrow(flips))
 
     for (b in seq_len(nrow(flips))) {
+
         fpx <- flips[b, ] * px
+
         V[b] <- drop(crossprod(fpx, P %*% fpx))
     }
 
@@ -264,10 +207,46 @@ rma_fast <- function(yi, vi, data, mods = NULL, beta = NULL,
     Sstd <- S / sqrt(V)
 
     list(
-        S     = S,
-        V     = V,
-        Sstd  = Sstd,
-        P     = P,
-        px    = px
+        S = S,
+        V = V,
+        Sstd = Sstd,
+        px = px,
+        P = P
     )
+}
+
+.pb <- function(index, niter, width = 40) {
+    if (!is.numeric(index) || !is.numeric(niter)) {
+        stop("`index` and `niter` must be numeric.")
+    }
+
+    if (length(index) != 1 || length(niter) != 1) {
+        stop("`index` and `niter` must be scalar values.")
+    }
+
+    if (is.na(index) || is.na(niter) || niter <= 0) {
+        stop("`niter` must be a positive number and `index` must not be NA.")
+    }
+
+    index <- max(0, min(index, niter))
+    progress <- index / niter
+
+    percent <- floor(progress * 100)
+    filled <- round(width * progress)
+    empty <- width - filled
+
+    bar <- paste0(
+        "[",
+        paste0(rep("=", filled), collapse = ""),
+        paste0(rep(" ", empty), collapse = ""),
+        "]"
+    )
+
+    cat(sprintf("\r%3d%% %s", percent, bar))
+    utils::flush.console()
+
+    if (index >= niter) {
+        cat("\n")
+    }
+    invisible(progress)
 }
