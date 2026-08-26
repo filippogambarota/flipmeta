@@ -1,0 +1,13 @@
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{fig-type-1-power-sim}Simulation results}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{pimma_files/figure-pdf/fig-type-1-power-sim-1.pdf}}
+
+}
+
+\end{figure*}

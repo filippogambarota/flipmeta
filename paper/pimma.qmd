@@ -1,0 +1,637 @@
+---
+title: Post-selection inference in multiverse meta-analysis
+shorttitle: PIMMA
+format:
+  apaquarto-pdf: default
+bibliography: "https://raw.githubusercontent.com/filippogambarota/bib-database/main/references.bib"
+author:
+  - name: Matteo Manente
+    affiliations:
+      - name: University of Padova
+        id: 1
+        department: Department of Developmental Psychology and Socialization
+        address: Via Venezia 8
+        city: Padova
+        state: Italy
+        postal-code: 35131
+  - name: Livio Finos
+    affiliations:
+      - name: University of Padova
+        id: 2
+        department: Department of Statistical Sciences
+        address: Via Battisti 241
+        city: Padova
+        state: Italy
+        postal-code: 35121
+    # attributes:
+    #   equal-contributor: true
+  - name: Gianmarco Altoè
+    affiliations:
+      - ref: 1
+  - name: Filippo Gambarota
+    affiliations:
+      - ref: 1
+    corresponding: true
+    email: filippo.gambarota@unipd.it
+abstract: |
+  Abstract here
+keywords: [template, demo]
+filters:
+  - _filters/equation-ref.lua
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(patchwork)
+
+knitr::opts_chunk$set(
+    warning = FALSE,
+    echo = FALSE,
+    message = FALSE,
+    fig.align = "center"
+)
+
+sim <- readRDS(here::here("simulation/res.rds"))
+sim <- unnest_longer(sim, res, indices_to = "sim")
+sim <- unnest(sim, res)
+```
+
+
+# Introduction
+
+Doing research can be hard. Researchers must make many decisions during a study. These decisions concern choosing between different measurement instruments, data pre-processing procedures, and statistical models. Each decision is usually reasonable and defensible but often arbitrary. Together, these decisions are known as *researcher degrees of freedom* [@Simmons2011-ne].
+
+Researcher degrees of freedom are especially common in psychology and the social sciences, but they also occur in other fields such as medicine and biology [@Errington2021-fb; @Nosek2022-ab]. In psychology, for example, phenomena are often difficult to define and causal relationships between variables are difficult to establish [@Eronen2021-fn]. There are numerous measurement instruments, which are often poorly validated [@Flake2020-wz], while data analysis is complex and rarely guided by a single optimal solution. Together, these features make it difficult to justify one analytic approach over another. In practice, there is often no single best procedure for data collection, pre-processing, or analysis. Researchers must therefore choose one path among many valid ones in the so-called “garden of forking paths” [@Gelman2013-hm]. Importantly, different choices can lead to different results. Even with the same data and research question, different analytical strategies may yield different conclusions [@Silberzahn2018-yu]. Researchers therefore often face a *multiverse* of equally reasonable outcomes [@Steegen2016-gx].
+
+The existence of researcher degrees of freedom does not necessarily constitute a statistical problem when analytical choices are fully determined in advance. However, when multiple reasonable specifications are examined and the observed results influence which analyses are emphasized or interpreted, a multiple testing and selective-inference problem arises. This is particularly evident in questionable research practices such as *p-hacking*—testing many analytic options until a non-significant result becomes significant—but the same inferential issue can also arise without intentional manipulation when researchers explore multiple analyses and selectively interpret their results [@Gelman2013-hm]. Without proper adjustment, this process can inflate the false positive rate beyond the nominal level (e.g., $\alpha = 5%$). Researcher degrees of freedom have therefore been considered one of the factors contributing to the replication crisis [@Open-Science-Collaboration2015-al; @Wicherts2016-cz].
+
+Importantly, researcher degrees of freedom are unavoidable. They are a natural part of empirical research. The problem lies not in their existence but in their opacity and in the selective interpretation of their results. When only one analytic path is reported, reviewers and readers cannot assess how results depend on alternative choices or how robust the findings truly are.
+
+Instead of presenting a single path, *multiverse analysis* was proposed to make the full set of analytic choices and results transparent [@Steegen2016-gx]. The core idea is simple: the data are processed and analyzed using all reasonable combinations of analytic choices, and the resulting estimates are jointly reported [@Simonsohn2020-sr; @Steegen2016-gx]. This approach makes explicit the variability induced by analytic choices and allows readers to evaluate how conclusions depend on alternative decisions.
+
+Although multiverse analysis was developed mainly for primary studies, meta-analyses face the same challenges. A *meta-analysis* aims to quantitatively synthesize evidence across studies [@Borenstein2009-mo]. However, meta-analyses are also affected by researcher degrees of freedom. Researchers must choose, for example, which studies to include, which effect-size metrics to use, how to compute the sampling variance, and which statistical model to implement (e.g., fixed- versus random-effects models). Each decision can be reasonable, yet it can influence the final result. This becomes even more relevant in meta-analyses involving complex data structures, such as multilevel or multivariate data, which often require imputing missing information, aggregating effect sizes, or making additional modeling assumptions [@Van-den-Noortgate2013-lu; @Cheung2013-hw].
+
+This issue is particularly important because systematic reviews and meta-analyses are traditionally placed at the top of the hierarchy of evidence and can substantially influence clinical and policy decisions [@Higgins2019-ck; @Murad2016-yw]. Therefore, although assessing the robustness of results across plausible analytical choices is important in any empirical investigation, it is especially critical in meta-analysis. A dramatic change in conclusions following minor analytical changes suggests that the evidence is fragile, potentially due to weak theory, poor measurement, heterogeneous effects, or other factors.
+
+Recently, several authors have assessed the robustness of research findings using multiverse meta-analysis, for example examining the efficacy of psychotherapy and digital interventions for depression [@Plessen2023-ex; @Plessen2025-ip], the association between IQ and mental illness [@Fries2025-aq], the effects of oxytocin administration [@Kang2025-se], and the effects of music listening on epilepsy [i.e., the Mozart effect; @Oberleiter2023-zz].
+
+However, despite these advantages, current approaches to multiverse analysis are still limited from an inferential perspective. Many are primarily descriptive, such as the original multiverse analysis proposed by [@Steegen2016-gx] or the *Vibration of Effects* framework [@Patel2015-pn]. These methods visualize estimated parameters and $p$-values across the multiverse and provide summary measures of their variability. Although useful for assessing robustness, they do not provide a formal inferential answer to the original hypothesis-testing question. A research question initially formulated in confirmatory terms is therefore effectively shifted toward an exploratory description of the multiverse.
+
+In inferential terms, a multiverse can be viewed as a multiple testing problem [@Girardi2024-ip; @Westfall1992-es; @Goeman2014-om]. Multiple statistical tests are performed on the same data, and the resulting test statistics are generally strongly dependent because specifications often differ only by a small number of analytical choices. Interpreting unadjusted $p$-values across such specifications can therefore be misleading, even when they are initially presented for exploratory purposes.
+
+Inference across multiple specifications can be conducted either globally, by testing an omnibus hypothesis about the complete set of results, or selectively, by making inference on particular specifications. A global test considers the intersection null hypothesis that the effect is null in all specifications. Rejecting this hypothesis with a given error rate (e.g., 5%) allows researchers to conclude that the null hypothesis is false in at least one specification, but does not identify which specification is responsible for the rejection. With hundreds or thousands of specifications, this may provide only limited substantive insight [@Oberauer2019-xv, p. 1609]. By contrast, making inferential claims about one or more specifications selected after inspecting the multiverse requires multiplicity-adjusted or post-selection inference, introducing an important trade-off between false positive error control and statistical power.
+
+Currently available inferential methods for multiverse analysis are limited and have mostly focused on global inference. For example, *Specification Curve Analysis* (SCA) [@Simonsohn2020-sr] is one of the most widely used inferential multiverse tools and has also been applied in multiverse meta-analysis [see, e.g., @Pietschnig2022-mg; @Plessen2023-ex]. SCA uses resampling under the null to generate a joint reference distribution of results across a set of reasonable analytical specifications, allowing the observed specification curve to be compared with what would be expected if the effect were absent. However, its inferential procedure is primarily developed for linear-model settings and does not provide a general framework for selective inference on individual specifications.
+
+More recently, the *Post-selection Inference in Multiverse Analysis* (PIMA) framework [@Girardi2024-ip] provided a general inferential approach for multiverse analysis. PIMA is based on sign-flipping score tests and combines information across specifications through a joint resampling procedure. It allows researchers to test a global null hypothesis across the multiverse and, importantly, to perform selective inference on individual specifications while strongly controlling the family-wise error rate. Compared with SCA, PIMA was developed within the generalized linear model framework and therefore applies to a wider range of outcome distributions and model specifications.
+
+Extending this framework to meta-analysis, however, is not straightforward. Multiverse meta-analysis combines two distinct inferential problems. First, inference *within* each specification may itself be poorly calibrated. Standard Wald-type inference in random- and mixed-effects meta-analytic models relies on large-sample approximations with respect to the number of studies, and these approximations can perform poorly when the number of studies is small or moderate [@Follmann1999-ha; @Viechtbauer2015-tn]. Second, inference *across* specifications introduces a multiple testing and post-selection problem because a large number of highly correlated meta-analytic specifications may be examined simultaneously. Correcting only across specifications is not sufficient if the individual tests are poorly calibrated, while improving inference within each specification is not sufficient if researchers subsequently select significant results from the multiverse.
+
+Permutation-based inference has already been proposed for several meta-analytic settings. Follmann and Proschan [@Follmann1999-ha] developed permutation procedures for testing the average effect in random-effects meta-analysis; Higgins and Thompson [@Higgins2004-gf] proposed permutation tests for moderator effects in meta-regression; Viechtbauer et al. [@Viechtbauer2015-tn] showed that permutation tests can provide adequate Type I error control when testing moderators in mixed-effects meta-regression; and Noma et al. [@Noma2020-fi] extended permutation inference to multivariate random-effects meta-analysis. These methods, however, were developed for inference within a single meta-analytic model rather than for inference across a multiverse of specifications.
+
+Score-based sign flipping provides a natural route for connecting these two inferential layers. Instead of permuting outcomes or moderator values directly, sign-flipping methods operate on study- or observation-level score contributions. Under the null hypothesis, these contributions have mean zero and can be sign-flipped to construct a reference distribution for the test statistic. This approach has been developed for generalized linear models and shown to provide robust inference under variance misspecification [@Hemerik2020-nq; @De-Santis2025-ga], while subsequent developments have extended the same logic to simultaneous testing of many correlated models through permutation-based multiple-testing procedures [@De-Santis2025-ej].
+
+In this paper, we extend score-based sign-flipping inference, and consequently the PIMA framework, to mixed-effects meta-analysis and meta-regression. We call this method Post-Selection Inference in Multiverse Meta-Analysis (PIMMA). First, we derive study-level score contributions for testing meta-analytic regression coefficients while accounting for nuisance parameters and between-study heterogeneity. Second, we show how common sign-flipping transformations can be applied across multiple meta-analytic specifications to obtain global and specification-specific multiplicity-adjusted inference within the PIMA framework. The score-based sign-flipping inference for the meta-analysis model will be assessed using a simulation study compared with the common inferential methods. Finally, we illustrate the proposed approach by reanalyzing the multiverse meta-analysis of the association between brain volume and intelligence by Pietschnig et al. [@Pietschnig2022-mg].
+
+# Mixed-Effects Meta-Regression
+
+In this section, we present a general formulation of the mixed-effects meta-regression model, following the notation of @Viechtbauer2015-tn. In a meta-analysis with $k$ independent studies, let $y_i$ and $v_i$ denote respectively the observed effect size estimate and the sampling variance for the $i$-th study. The model can be written as
+
+$$
+\begin{aligned}
+\mathbf{y} &= \mathbf{X} \boldsymbol{\beta} + \mathbf{u} + \mathbf{e}, \\
+\mathbf{u} &\sim \mathcal{N}(\mathbf{0}, \tau^2\mathbf{I}), \\
+\mathbf{e} &\sim \mathcal{N}(\mathbf{0}, \mathbf{V}),
+\end{aligned}
+$$ {#eq-meta-reg}
+
+where $\mathbf{y}$ is the $k \times 1$ vector of observed effect size estimates, $\mathbf{X}$ is the $k \times p$ model matrix (including the intercept), and $\boldsymbol{\beta}$ is the vector of $p$ regression coefficients. The vector $\mathbf{u}$ contains the study-level random effects and is assumed to follow a normal distribution with mean zero and variance $\tau^2$, whereas $\mathbf{e}$ contains the within-study sampling errors. The sampling errors are assumed to be normally distributed with a diagonal variance-covariance matrix $\mathbf{V} = \operatorname{diag}(v_1,\ldots,v_k)$, where the sampling variances $v_i$ are treated as known. It follows that the marginal distribution of the observed effect size estimates is
+
+$$
+\mathbf{y} \sim \mathcal{N}\left(\mathbf{X}\boldsymbol{\beta}, \boldsymbol{\Sigma}\right),
+\qquad
+\boldsymbol{\Sigma} = \mathbf{V} + \tau^2 \mathbf{I}.
+$$ {#eq-marginal}
+
+For a fixed value of $\tau^2$, the regression coefficients can be estimated by weighted least squares. Let $\mathbf{W} = \boldsymbol{\Sigma}^{-1} = (\mathbf{V} + \tau^2 \mathbf{I})^{-1}$. The estimator of $\boldsymbol{\beta}$ is then
+
+$$
+\mathbf{b}
+=
+(\mathbf{X}^{\top}\mathbf{W}\mathbf{X})^{-1}
+\mathbf{X}^{\top}\mathbf{W}\mathbf{y}.
+$${#eq-wls}
+
+Since $\tau^2$ is unknown, the weights used in practice are obtained by replacing $\tau^2$ with an estimate $\hat{\tau}^2$, so that $\hat{\mathbf{W}} = (\mathbf{V}+\hat{\tau}^2\mathbf{I})^{-1}$. Several estimators have been proposed for $\tau^2$ [see @Viechtbauer2005-yh]. We focus here on the DerSimonian--Laird estimator [-@DerSimonian1986-ju], as a commonly used non-iterative method-of-moments estimator, and on restricted maximum likelihood (REML) method.
+
+Both estimators can be expressed using the matrix
+
+$$
+\mathbf{P}
+=
+\mathbf{W}
+-
+\mathbf{W}\mathbf{X}
+(\mathbf{X}^{\top}\mathbf{W}\mathbf{X})^{-1}
+\mathbf{X}^{\top}\mathbf{W}.
+$$ {#eq-het-p}
+
+For the DerSimonian--Laird estimator, $\mathbf{W}$ is computed using only the inverse sampling variances, that is, $w_i = v_i^{-1}$. The estimator is given by
+
+$$
+\hat{\tau}^2_{\mathrm{DL}}
+=
+\frac{
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y} - (k-p-1)
+}{
+\operatorname{tr}(\mathbf{P})
+},
+$$ {#eq-het-dl}
+
+where negative $\hat{\tau}^2_{\mathrm{DL}}$ values are truncated to zero.
+
+Likelihood-based estimators are obtained from the marginal normal model in [-@eq-marginal]. The log-likelihood of the random-effects model can be written as
+
+$$
+\ell_{\mathrm{ML}}(\boldsymbol{\beta}, \tau^2)
+=
+-\frac{1}{2}
+\left[
+k\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+(\mathbf{y}-\mathbf{X}\boldsymbol{\beta})^{\top}
+\boldsymbol{\Sigma}^{-1}
+(\mathbf{y}-\mathbf{X}\boldsymbol{\beta})
+\right].
+$$ {#eq-ml-loglik}
+
+For a fixed value of $\tau^2$, maximizing @eq-ml-loglik with respect to $\boldsymbol{\beta}$ gives the weighted least squares estimator in @eq-wls. Substituting this estimator into the likelihood yields the profiled log-likelihood
+
+$$
+\ell_{\mathrm{ML}}^{p}(\tau^2)
+=
+-\frac{1}{2}
+\left[
+k\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y}
+\right].
+$$ {#eq-ml-profile}
+
+However, maximum likelihood estimators of variance components are generally downward biased because they do not account for the loss of degrees of freedom associated with estimating the fixed effects. Restricted maximum likelihood addresses this issue by maximizing a likelihood based on linear combinations of the data that remove the fixed effects. In the present model, the restricted log-likelihood can be written as
+
+$$
+\ell_{\mathrm{REML}}(\tau^2)
+=
+-\frac{1}{2}
+\left[
+(k-p-1)\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+\log|\mathbf{X}^{\top}\mathbf{W}\mathbf{X}|
++
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y}
+\right].
+$$ {#eq-reml-loglik}
+
+After $\hat{\tau}^2_{\mathrm{REML}}$ has been obtained, the final estimates of the meta-regression coefficients are computed using $\tau^2_{\mathrm{REML}}$ into @eq-wls.
+
+Several methods have been proposed to perform statistical inference on the regression coefficients in mixed-effects meta-regression models [see @Viechtbauer2015-tn]. Here, we consider the three main approaches that will be compared in the simulation study: Wald-type inference, the Knapp--Hartung method [@Knapp2003-qx], and permutations [@Follmann1999-ha; @Higgins2004-gf].
+
+Under the standard Wald-type approach, the variance-covariance matrix of the estimated regression coefficients is estimated as
+
+$$
+\hat{\mathbf{V}}_{\mathbf{b}}
+=
+(\mathbf{X}^{\top}\hat{\mathbf{W}}\mathbf{X})^{-1},
+$$ {#eq-vb-wald}
+
+where
+
+$$
+\hat{\mathbf{W}}
+=
+(\mathbf{V}+\hat{\tau}^2\mathbf{I})^{-1}.
+$$
+
+The standard error of $b_j$ is given by the square root of the corresponding diagonal element of $\hat{\mathbf{V}}_{\mathbf{b}}$. The Wald-type test statistic is then defined as
+
+$$
+z_j
+=
+\frac{b_j}{\sqrt{\widehat{\operatorname{Var}}(b_j)}}.
+$$ {#eq-wald-stat}
+
+Under the null hypothesis $H_0:\beta_j = 0$, $z_j$ is compared against the critical value calculated at the $\alpha$ level of a standard normal distribution.
+
+The Knapp--Hartung method uses the same coefficient estimates but replaces the standard variance-covariance matrix @eq-vb-wald with an adjusted version as $\hat{\mathbf{V}}_{\mathbf{b} \mathrm{KH}} = s^2 \hat{\mathbf{V}}_{\mathbf{b}}$ with $s^2$ calculated as
+
+$$
+s^2
+=
+\frac{
+\mathbf{y}^{\top}\hat{\mathbf{P}}\mathbf{y}
+}{
+k-p-1
+}.
+$$ {#eq-kh-scale}
+
+The test statistic is computed as in @eq-wald-stat, using the corresponding adjusted standard error, and is compared against a $t$ distribution with $k-p-1$ degrees of freedom. A truncated version of the Knapp--Hartung method sets $s^2 = 1$ whenever $s^2 < 1$, thereby preventing the adjusted standard error from being smaller than the standard Wald-type standard error.
+
+Permutation testing provides a nonparametric alternative for testing moderator effects. For a given coefficient $b_j$, the observed Wald-type statistic $z_j^{(1)}$ is first computed from the original data. A total of $B$ data configurations are then considered, indexed by $b=1,\ldots,B$, with $b=1$ corresponding to the observed data and $b=2,\ldots,B$ corresponding to $B-1$ random permutations of the rows of the model matrix $\mathbf{X}$. These permutations break the association between the observed effect sizes and the moderator values while preserving the distribution of the moderators. For each permuted data set, the meta-regression model is refitted and the corresponding test statistic $z_j^{(b)}$ is computed. The resulting statistics provide a Monte Carlo approximation to the permutation distribution of $z_j$. For a two-sided test, the permutation $p$ value is computed as
+
+$$
+p_{\mathrm{perm}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}\left(
+|z_j^{(b)}| \geq |z_j^{(1)}|
+\right)
+}{
+B
+}.
+$${#eq-perm-p}
+
+# Meta-regression using flipscores
+
+The mixed-effects meta-regression model can be reformulated as a score-based test. This provides the link between moderator testing in meta-analysis and the sign-flipping score framework used by PIMA. The key change is that the resampling is no longer applied to the rows of the model matrix, as in the permutation test described above, but to the study-level contributions to the score.
+
+To align the notation with the sign-flipping score literature, we partition the design matrix into focal and nuisance components. In this section, $\mathbf{X}$ denotes the $k \times q$ matrix of focal predictors, whose coefficients are tested, and $\mathbf{Z}$ denotes the $k \times r$ matrix of nuisance predictors. The full design matrix is therefore $[\mathbf{X},\mathbf{Z}]$. This differs from the previous section, where $\mathbf{X}$ denoted the complete meta-regression design matrix.
+
+The model can be written as
+
+$$
+\mathbf{y}
+\sim
+\mathcal{N}
+\left(
+\mathbf{X}\boldsymbol{\beta}
++
+\mathbf{Z}\boldsymbol{\gamma},
+\boldsymbol{\Sigma}
+\right),
+\qquad
+\boldsymbol{\Sigma}
+=
+\mathbf{V}
++
+\tau^2\mathbf{I}.
+$$ {#eq-flipmeta-model}
+
+We test $H_0:\boldsymbol{\beta}=\boldsymbol{\beta}_0$, usually with $\boldsymbol{\beta}_0=\mathbf{0}$, while $\boldsymbol{\gamma}$ and $\tau^2$ remain nuisance parameters. Under the null model, we estimate $\hat{\boldsymbol{\gamma}}_0$ and $\hat{\tau}_0^2$ and define
+
+$$
+\widehat{\boldsymbol{\Sigma}}_0
+=
+\mathbf{V}
++
+\hat{\tau}_0^2\mathbf{I},
+\qquad
+\widehat{\mathbf{W}}_0
+=
+\widehat{\boldsymbol{\Sigma}}_0^{-1}.
+$$ {#eq-null-weights}
+
+The fitted values and residuals under the null are
+
+$$
+\hat{\boldsymbol{\mu}}_0
+=
+\mathbf{X}\boldsymbol{\beta}_0
++
+\mathbf{Z}\hat{\boldsymbol{\gamma}}_0,
+\qquad
+\hat{\mathbf{r}}_0
+=
+\mathbf{y}
+-
+\hat{\boldsymbol{\mu}}_0.
+$$ {#eq-null-residuals}
+
+Define the weighted hat matrix for the nuisance design as
+
+$$
+\mathbf{H}_Z
+=
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{Z}
+\left(
+\mathbf{Z}^{\top}
+\widehat{\mathbf{W}}_0
+\mathbf{Z}
+\right)^{-1}
+\mathbf{Z}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}.
+$$ {#eq-hz}
+
+The effective score, evaluated under $H_0$, is then
+
+$$
+\mathbf{S}_{\mathrm{eff}}
+=
+k^{-1/2}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\hat{\mathbf{r}}_0.
+$$ {#eq-effective-score-observed}
+
+This expression is the meta-regression analogue of the effective score used in flipscores. It removes from the focal score the component explained by the nuisance score. Equivalently, it can be written as a sum of study-level effective score contributions,
+
+$$
+\mathbf{S}_{\mathrm{eff}}
+=
+k^{-1/2}
+\sum_{i=1}^{k}
+\boldsymbol{\nu}_i,
+$$ {#eq-score-contributions-observed}
+
+where $\boldsymbol{\nu}_i$ is the contribution of study $i$ to the effective score. With a single focal moderator and an intercept-only nuisance model, this reduces to
+
+$$
+\nu_i
+=
+(x_i-\bar{x}_w)
+\hat{w}_{0i}
+\hat{r}_{0i},
+\qquad
+\bar{x}_w
+=
+\frac{\sum_{i=1}^{k}\hat{w}_{0i}x_i}{\sum_{i=1}^{k}\hat{w}_{0i}}.
+$$ {#eq-simple-contribution}
+
+Thus, in the simplest case, the effective score is a weighted association between the centered moderator and the residuals under the null model. Under $H_0$, the effective score contributions have mean zero and are the quantities to be sign-flipped [@Hemerik2020-nq-nq; @De-Santis2025-ej; @Girardi2024-ip].
+
+Let $\mathbf{F}^{(b)}=\operatorname{diag}(g_1^{(b)},\ldots,g_k^{(b)})$ be a diagonal sign-flipping matrix, with $g_i^{(b)}\in\{-1,+1\}$. The first flip is fixed as the identity, $\mathbf{F}^{(1)}=\mathbf{I}$, and the remaining $B-1$ matrices are sampled at random. For flip $b$, the flipped effective score is
+
+$$
+\mathbf{S}_{\mathrm{eff}}^{(b)}
+=
+k^{-1/2}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{F}^{(b)}
+\hat{\mathbf{r}}_0,
+$$ {#eq-effective-score-flipped}
+
+or, equivalently,
+
+$$
+\mathbf{S}_{\mathrm{eff}}^{(b)}
+=
+k^{-1/2}
+\sum_{i=1}^{k}
+g_i^{(b)}
+\boldsymbol{\nu}_i.
+$$ {#eq-score-contributions-flipped}
+
+Following the standardized sign-flip score test, each flipped score is standardized by its flip-specific variance [@De-Santis2025-ej; @Girardi2024-ip]. In the present meta-regression setting, the variance estimator is
+
+$$
+\widehat{\mathbf{C}}^{(b)}
+=
+k^{-1}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\mathbf{F}^{(b)}
+(\mathbf{I}-\mathbf{H}_Z)
+\mathbf{F}^{(b)}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{X}.
+$$ {#eq-flip-variance}
+
+For a univariate focal parameter, we use
+
+$$
+T^{(b)}
+=
+\left|
+\frac{
+S_{\mathrm{eff}}^{(b)}
+}{
+\sqrt{\widehat{C}^{(b)}}
+}
+\right|.
+$$ {#eq-univ-score-stat}
+
+For a multidimensional focal parameter, we define $\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)}=(\widehat{\mathbf{C}}^{(b)})^{-1/2}\mathbf{S}_{\mathrm{eff}}^{(b)}$ and use the quadratic statistic
+
+$$
+T^{(b)}
+=
+\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)\top}
+\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)}.
+$$ {#eq-multiv-score-stat}
+
+The sign-flipping $p$ value for a single specification is
+
+$$
+p_{\mathrm{flip}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}
+\left(
+T^{(b)}
+\geq
+T^{(1)}
+\right)
+}{B}.
+$$ {#eq-flip-p}
+
+This test keeps the null model fixed and constructs the reference distribution by sign-flipping the study-level effective score contributions. It therefore differs from the classical permutation test, which permutes moderator values and refits the model.
+
+```{r}
+#| include: false
+#| cache: true
+
+set.seed(2026)
+k <- 100
+x1 <- rnorm(k, 0, 1)
+x2 <- rnorm(k, 0, 1)
+x3 <- rnorm(k, 0, 1)
+dat <- filor::sim_meta(
+  k,
+  0.1 + 0.5 * x1 + 0.1 * x2 + 0.4 * x3,
+  tau2 = 0.1,
+  n1 = 50
+)
+dat <- cbind(dat, x1, x2, x3)
+fit <- metafor::rma(yi, vi, data = dat, mods = ~ x1 + x2 + x3)
+elapsed <- function(expr) {
+  start <- Sys.time()
+  res <- eval(substitute(expr), envir = parent.frame())
+  elapsed_sec <- as.numeric(difftime(Sys.time(), start, units = "secs"))
+  list(res = res, time = elapsed_sec)
+}
+perm_rma <- elapsed(metafor::permutest(fit))
+flip_rma <- elapsed(flipmeta::flipmeta(fit))
+```
+
+This model inherites all the advantage of the flipscores testing framework in terms of robustness to variance misspesification. A more pratically relevant advantge is merely computational. While standard permutatation tests requires estimating all focal and nouisance parameters (including $\tau^2$) the flipscores method requires refitting the model once for each tested coefficient. We explored the computational advantages in the supplementary materials but a meta-analysis with $k = 100$ studies and 3 predictors using the `metafor::permutest()` function takes roughly `r round(perm_rma$time)` seconds while using the flipscores approach takes `r round(flip_rma$time, 1)` seconds. The score sign-flipping test based on the `flipscores` method is implemented into the `flipmeta` R package [https://github.com/filippogambarota/flipmeta](https://github.com/filippogambarota/flipmeta).
+
+# From flipscores to PIMMA
+
+The score sign-flipping test provides inference for a single meta-analytic specification. PIMA extends this logic to a multiverse by applying the same sign-flipping transformations across all admissible specifications and combining the resulting standardized score statistics across specifications [@Girardi2024-ip].
+
+Let $s=1,\ldots,S$ index the set of meta-analytic specifications. Specifications may differ in inclusion criteria, effect-size metric, moderator coding, heterogeneity estimator, or model structure. For each specification $s$, the null model is fitted and the statistic $T_s^{(b)}$ is computed for each flip $b=1,\ldots,B$, with $b=1$ denoting the observed data.
+
+The same sign vector is used across specifications. If a specification contains only a subset of studies or effect sizes, the corresponding flip matrix is obtained by restricting the common sign vector to the units included in that specification. This preserves the dependence induced by shared studies, shared effect sizes, and overlapping analytic choices.
+
+Inference across the multiverse can then be performed at two levels. First, a global test evaluates the null hypothesis that the focal parameter is null in all specifications. Following PIMA, the flipped statistics can in principle be combined using different non-decreasing functions; for post-selection inference, a particularly useful choice is the max-$T$ statistic [@Girardi2024-ip],
+
+$$
+M^{(b)}
+=
+\max_{s=1,\ldots,S}
+T_s^{(b)}.
+$$ {#eq-max-stat}
+
+The corresponding global $p$ value is
+
+$$
+p_{\mathrm{global}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}
+\left(
+M^{(b)}
+\geq
+M^{(1)}
+\right)
+}{B}.
+$$ {#eq-global-p}
+
+Rejecting the global null implies that the focal parameter is non-null in at least one specification, providing weak control of the family-wise error rate [@Girardi2024-ip].
+
+Second, selective inference can be performed for individual specifications. PIMA obtains multiplicity-adjusted $p$ values through the Westfall--Young max-$T$ procedure, which can be implemented using single-step or sequential step-down variants [@Westfall1992-es; @Westfall2008-py]. Because the adjustment is based on the joint resampling distribution of the statistics, it accounts for their dependence across specifications and provides strong control of the family-wise error rate. Researchers can therefore identify statistically significant specifications, or select a preferred specification after inspecting the multiverse, without inflating the probability of false-positive conclusions [@Girardi2024-ip].
+
+# Simulation study
+
+We performed a simulation study to evaluate the inferential performance of the proposed `flipmeta` approach and compare it with standard Wald-type inference and the Knapp--Hartung method [@Knapp2003-qx]. Standard permutation-based procedures for meta-analysis [@Follmann1999-ha; @Higgins2004-gf] were not included because they require repeated permutation of the model matrix and refitting of the complete meta-analytic model, resulting in a prohibitive computational cost.
+
+Data were generated following the general simulation framework of @Viechtbauer2015-tn. We considered meta-analyses consisting of $k$ independent studies, each comparing an experimental group ($E$) with a control group ($C$) on a quantitative outcome. For study $i=1,\ldots,k$, observations in the two groups were assumed to follow normal distributions with means $\mu_i^E$ and $\mu_i^C$ and a common within-study standard deviation $\sigma_i$. The true standardized mean difference for study $i$ was therefore
+
+$$
+\theta_i
+=
+\frac{\mu_i^E-\mu_i^C}{\sigma_i}.
+$$
+
+For each simulated study, we computed the observed standardized mean difference as
+
+$$
+d_i
+=
+\frac{\bar{x}_i^E-\bar{x}_i^C}{s_i},
+$$
+
+where $\bar{x}_i^E$ and $\bar{x}_i^C$ are the observed group means and $s_i$ is the pooled standard deviation. The approximately unbiased estimator of $\theta_i$ was then obtained using the small-sample correction [@Hedges1981-za],
+
+$$
+y_i
+=
+\left(
+1-
+\frac{3}
+{4\left(n_i^E+n_i^C\right)-9}
+\right)d_i.
+$$ {#eq-g}
+
+The corresponding sampling variance was estimated as
+
+$$
+v_i = 
+\frac{1}{n_i^E}
++
+\frac{1}{n_i^C}
++
+\frac{y_i^2}
+{2\left(n_i^E+n_i^C\right)}.
+$$
+
+The vector of true study effects was generated according to the mixed-effects meta-regression model
+
+$$
+\boldsymbol{\theta} = 
+\mathbf{X}\boldsymbol{\beta}
++
+\mathbf{Z}\boldsymbol{\gamma}
++
+\mathbf{u},
+$$
+
+where $\mathbf{X}$ contains the focal predictors, $\boldsymbol{\beta}$ their corresponding regression coefficients, $\mathbf{Z}$ contains nuisance predictors, $\boldsymbol{\gamma}$ their coefficients, and $\mathbf{u}$ is the vector of study-specific random effects. The random effects were independently generated as $u_i \sim \mathcal{N}(0,\tau^2)$.
+
+Under the null hypothesis, the focal coefficients were set to $\boldsymbol{\beta}=\mathbf{0}$, allowing empirical Type I error rates to be evaluated. Under the alternative hypothesis, focal regression coefficients were set to $\beta \in \{0.1,0.3,0.5\}$, representing increasingly strong associations and allowing statistical power to be evaluated. The nuisance coefficients were similarly varied over $\gamma \in \{0.1,0.3,0.5\}$ under both the null and alternative hypotheses.
+
+Focal and nuisance predictors were jointly generated from a multivariate normal distribution with mean zero and unit marginal variances. A compound-symmetry correlation structure with pairwise correlation $\rho=0.5$ was used, so that focal and nuisance predictors were moderately correlated. This setting was chosen to represent the common situation in which inference on a focal moderator must account for correlated study-level covariates.
+
+Residual heterogeneity was varied by setting $\tau^2 \in {0,0.01,0.10,0.50}$. The condition $\tau^2=0$ corresponds to the absence of residual between-study heterogeneity, whereas the remaining values represent progressively larger amounts of heterogeneity on the standardized mean-difference scale. The number of studies was varied over $k \in {10,20,40,100}$ covering meta-analyses ranging from relatively small to large. Study sample sizes were also allowed to vary across studies. For each study, equal expected group sizes were assumed, such that $n_i^E$ and $n_i^C$ were generated from the same negative-binomial distribution. Four average group sizes were considered $n \in {10,30,50,80}$ and the negative-binomial dispersion parameter was chosen so that the variance of the generated sample sizes was approximately twice their mean. This produces heterogeneous study sizes while retaining a prespecified average sample size, more closely reflecting the variation in study precision typically encountered in meta-analysis.
+
+For each combination of simulation parameters, the resulting effect-size estimates $y_i$ and sampling variances $v_i$ were analyzed using the competing inferential procedures. Performance under the null hypothesis was quantified by the empirical Type I error rate at the nominal significance level $\alpha=0.05$, whereas performance under the alternative hypothesis was quantified by empirical statistical power.
+
+```{r}
+#| label: fig-type-1-power-sim
+#| fig-cap: Simulation results
+#| fig-height: 12
+#| fig-width: 10
+
+type1 <- sim |>
+    filter(coef == "x1" & bX == 0) |>
+    pivot_longer(starts_with("pval")) |>
+    select(bX, tau2, k, n, method, name, value) |>
+    group_by(bX, tau2, k, method, name) |>
+    summarise(p = mean(value <= 0.05)) |>
+    ggplot(aes(x = k, y = p, color = name)) +
+    geom_hline(yintercept = filor::se_p(0.05, 500)$ci, lty = "dotted") +
+    geom_point() +
+    geom_line() +
+    facet_grid(tau2 ~ method) +
+    theme_minimal(20) +
+    ylab("Type-1 Error") +
+    theme(legend.position = "bottom")
+
+power <- sim |>
+    filter(coef == "x1" & bX != 0) |>
+    pivot_longer(starts_with("pval")) |>
+    select(bX, tau2, k, n, method, name, value) |>
+    group_by(bX, tau2, k, method, name) |>
+    summarise(p = mean(value <= 0.05)) |>
+    ggplot(aes(x = k, y = p, color = name)) +
+    geom_point() +
+    geom_line() +
+    facet_grid(tau2 ~ method) +
+    theme_minimal(20) +
+    ylab("Power") +
+    theme(legend.position = "bottom")
+
+(type1 / power) +
+    plot_layout(guides = "collect", axes = "collect") &
+    theme(legend.position = "bottom")
+```
+
+
+
+# Application to the @Pietschnig2022-mg dataset
+
+Description and results
+
+# References
+
+::: {#refs}
+:::

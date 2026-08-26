@@ -1,10 +1,14 @@
 Package: flipmeta
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Robust Score Testing in Meta-Analyses, by Sign-Flip Contributions
+Version: 0.0.1
 Authors@R: 
-    person("Filippo", "Gambarota", , "filippo.gambarota@unipd.it", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0002-6666-1747"))
-Description: What the package does (one paragraph).
+    c(person("Filippo", "Gambarota", email = "filippo.gambarota@unipd.it", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6666-1747")),
+      person("Livio", "Finos", email = "livio.finos@unipd.it", role = c("ctb"), comment = c(ORCID = "0000-0003-3181-8078")))
+Author: Filippo Gambarota [aut, cre],
+    Livio Finos [ctb]
+Maintainer: Filippo Gambarota <filippo.gambarota@unipd.it>
+Description: Provides robust tests for testing in Meta-analyses, by sign-flipping score contributions.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

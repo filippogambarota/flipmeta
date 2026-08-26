@@ -1,1 +1,8 @@
 .Rproj.user
+
+/.quarto/
+**/*.quarto_ipynb
+sources/
+.codex/
+..Rcheck/
++

@@ -1,10 +1,11 @@
-#' @export
 .join_flipmeta <- function(fits,
                            B = 5000,
                            flips = NULL,
                            tested_coeffs = NULL,
+                           method = NULL,
                            interval = c(0, 1000),
                            progress = TRUE,
+                           extra = NULL,
                            tol = .Machine$double.eps^0.25) {
 
     if (!all(vapply(
@@ -15,28 +16,30 @@
         stop("All elements of 'fits' must be 'rma.uni' objects.")
     }
 
-    if (is.null(names(fits))) {
-        names(fits) <- paste0("mod", seq_along(fits))
+    fits_named <- fits
+
+    if (is.null(names(fits_named))) {
+        names(fits_named) <- paste0("mod", seq_along(fits_named))
     } else {
-        empty_names <- names(fits) == "" | is.na(names(fits))
-        names(fits)[empty_names] <- paste0("mod", which(empty_names))
+        empty_names <- names(fits_named) == "" | is.na(names(fits_named))
+        names(fits_named)[empty_names] <- paste0("mod", which(empty_names))
     }
 
     tested_list <- .resolve_tested_coeffs(
-        fits = fits,
+        fits = fits_named,
         tested_coeffs = tested_coeffs
     )
 
-    obs_names <- unique(unlist(lapply(fits, .flipmeta_obs_names)))
+    obs_names <- unique(unlist(lapply(fits_named, .flipmeta_obs_names)))
 
     if (is.null(flips)) {
 
-        flips <- flipscores:::make_flips(
+        flips_all <- flipscores:::make_flips(
             n_obs = length(obs_names),
             n_flips = B
         )
 
-        colnames(flips) <- obs_names
+        colnames(flips_all) <- obs_names
 
     } else {
 
@@ -53,26 +56,29 @@
             )
         }
 
-        B <- nrow(flips)
+        flips_all <- flips
     }
 
-    objects <- vector("list", length(fits))
-    names(objects) <- names(fits)
+    B_eff <- nrow(flips_all)
 
-    for (i in seq_along(fits)) {
+    objects <- vector("list", length(fits_named))
+    names(objects) <- names(fits_named)
+
+    for (i in seq_along(fits_named)) {
 
         objects[[i]] <- .flipmeta_single(
-            fit = fits[[i]],
-            B = B,
-            flips = flips,
+            fit = fits_named[[i]],
+            B = B_eff,
+            flips = flips_all,
             tested_coeffs = tested_list[[i]],
+            method = method,
             interval = interval,
             tol = tol
         )
 
-        objects[[i]]$model_name <- names(fits)[i]
+        objects[[i]]$model_name <- names(fits_named)[i]
         if(progress){
-            .pb(niter = length(fits), index = i)
+            .pb(niter = length(fits_named), index = i)
         }
 
     }
@@ -99,16 +105,33 @@
 
     rownames(summary_table) <- NULL
 
+    # TODO check the model names and put in a robust way
+
+    if (!is.null(extra)) {
+        extra$model <- names(objects)[seq_len(nrow(extra))]
+
+        .row_order <- seq_len(nrow(summary_table))
+        summary_table <- merge(
+            summary_table,
+            extra,
+            by = "model",
+            all.x = TRUE,
+            sort = FALSE
+        )
+        summary_table <- summary_table[order(.row_order), , drop = FALSE]
+        rownames(summary_table) <- NULL
+    }
+
     out <- list(
         Tspace        = as.data.frame(Tspace),
         summary_table = summary_table,
         objects       = objects,
-        flips         = flips,
-        B             = B,
+        flips         = flips_all,
+        B             = B_eff,
         call          = match.call()
     )
 
-    class(out) <- unique(c("flipmeta_list", "flipmeta", class(out)))
+    class(out) <- unique(c("fml", "fm", class(out)))
 
     out
 }

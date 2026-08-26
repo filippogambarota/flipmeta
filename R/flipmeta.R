@@ -4,17 +4,29 @@
 #' @param B Number of sign-flips.
 #' @param flips Optional matrix of precomputed flips.
 #' @param tested_coeffs Optional character vector of coefficients to test.
-#' @param interval Interval for numerical estimation of tau^2 under H0 when needed.
+#' @param method Optional heterogeneity estimator. One of `"REML"`, `"ML"`,
+#'   `"DL"`, or `"EE"`. If `NULL`, the method stored in `fit` is used. `"EE"`
+#'   fits an equal-effects model with tau^2 fixed at 0.
+#' @param progress Logical indicating whether to show progress for lists of models.
 #' @param tol Numerical tolerance.
+#' @param control Optional list of numerical controls. Currently supports
+#'   `tau2_interval`, a finite length-two numeric vector used as the search
+#'   interval for tau^2 under the null.
 #'
 #' @export
-flipmeta <- function(fit,
-                     B = 5000,
-                     flips = NULL,
-                     tested_coeffs = NULL,
-                     interval = c(0, 1000),
-                     progress = TRUE,
-                     tol = .Machine$double.eps^0.25) {
+flipmeta <- function(
+    fit,
+    B = 5000,
+    flips = NULL,
+    tested_coeffs = NULL,
+    method = NULL,
+    extra = NULL,
+    progress = TRUE,
+    tol = .Machine$double.eps^0.25,
+    control = list()
+) {
+    control_values <- .flipmeta_control(control)
+    method <- .flipmeta_match_method(method)
 
     if (is.list(fit) && !inherits(fit, "rma")) {
         .join_flipmeta(
@@ -22,43 +34,61 @@ flipmeta <- function(fit,
             B = B,
             flips = flips,
             tested_coeffs = tested_coeffs,
-            interval = interval,
+            method = method,
+            interval = control_values$tau2_interval,
             progress = progress,
-            tol = tol
+            tol = tol,
+            extra = extra
         )
-    } else{
+    } else {
         .flipmeta_single(
             fit = fit,
             B = B,
             flips = flips,
             tested_coeffs = tested_coeffs,
-            interval = interval,
+            method = method,
+            interval = control_values$tau2_interval,
             tol = tol
         )
     }
-
 }
 
-.flipmeta_single <- function(fit,
-                             B = 5000,
-                             flips = NULL,
-                             tested_coeffs = NULL,
-                             interval = c(0, 1000),
-                             tol = .Machine$double.eps^0.25) {
-
+.flipmeta_single <- function(
+    fit,
+    B = 5000,
+    flips = NULL,
+    tested_coeffs = NULL,
+    method = NULL,
+    interval = c(0, 1000),
+    tol = .Machine$double.eps^0.25
+) {
     if (!inherits(fit, "rma") || inherits(fit, "rma.mv")) {
-        stop("Input 'fit' must be an 'rma' object produced by metafor::rma.uni(), not 'rma.mv'.")
+        stop(
+            "Input 'fit' must be an 'rma' object produced by metafor::rma.uni(), not 'rma.mv'."
+        )
     }
 
+    method_requested <- .flipmeta_match_method(method)
+    method <- if (is.null(method_requested)) fit$method else method_requested
     rma <- fit
 
     yi <- as.numeric(fit$yi)
     vi <- as.numeric(fit$vi)
-    X  <- as.matrix(fit$X)
+    X <- as.matrix(fit$X)
 
-    method <- fit$method
-    mods   <- fit$formula.mods
-    data   <- fit$data
+    if (
+        !is.null(method_requested) && !identical(method_requested, fit$method)
+    ) {
+        rma <- .flipmeta_refit_rma_X(
+            yi = yi,
+            vi = vi,
+            X = X,
+            method = method_requested
+        )
+    }
+
+    mods <- fit$formula.mods
+    data <- fit$data
 
     if (is.null(rownames(X))) {
         rownames(X) <- seq_len(nrow(X))
@@ -88,25 +118,28 @@ flipmeta <- function(fit,
     p_test <- length(tested_id)
 
     if (is.null(flips)) {
-        flips <- flipscores:::make_flips(n_obs = k, n_flips = B)
-        colnames(flips) <- rownames(X)
+        flips_all <- flipscores:::make_flips(n_obs = k, n_flips = B)
+        colnames(flips_all) <- rownames(X)
+    } else {
+        flips_all <- flips
     }
 
-    B <- nrow(flips)
-    kall <- ncol(flips)
+    B_eff <- nrow(flips_all)
+    kall <- ncol(flips_all)
 
     rows <- as.character(rownames(X))
 
-    if (is.null(colnames(flips))) {
+    if (is.null(colnames(flips_all))) {
         if (kall != k) {
-            stop("If 'flips' has no column names, ncol(flips) must equal the number of rows in the fitted model.")
+            stop(
+                "If 'flips' has no column names, ncol(flips) must equal the number of rows in the fitted model."
+            )
         }
 
         used_rows <- rep(TRUE, k)
-        flips_eff <- flips
-
+        flips_eff <- flips_all
     } else {
-        missing_rows <- setdiff(rows, colnames(flips))
+        missing_rows <- setdiff(rows, colnames(flips_all))
 
         if (length(missing_rows) > 0L) {
             stop(
@@ -115,28 +148,25 @@ flipmeta <- function(fit,
             )
         }
 
-        used_rows <- colnames(flips) %in% rows
-        flips_eff <- flips[, rows, drop = FALSE]
+        used_rows <- colnames(flips_all) %in% rows
+        flips_eff <- flips_all[, rows, drop = FALSE]
     }
 
-    pval   <- rep(NA_real_, p_test)
-    tau2   <- rep(NA_real_, p_test)
-    beta   <- rep(NA_real_, p_test)
+    pval <- rep(NA_real_, p_test)
+    tau2 <- rep(NA_real_, p_test)
 
     scores <- matrix(NA_real_, nrow = kall, ncol = p_test)
-    Tspace <- matrix(NA_real_, nrow = B, ncol = p_test)
+    Tspace <- matrix(NA_real_, nrow = B_eff, ncol = p_test)
 
     colnames(scores) <- tested_names
     colnames(Tspace) <- tested_names
     names(pval) <- tested_names
     names(tau2) <- tested_names
-    names(beta) <- tested_names
 
     null_fits <- vector("list", length = p_test)
     names(null_fits) <- tested_names
 
     for (jj in seq_along(tested_id)) {
-
         j <- tested_id[jj]
 
         fit_j <- .fit_null_metafor_X(
@@ -151,22 +181,19 @@ flipmeta <- function(fit,
 
         null_fits[[jj]] <- fit_j
 
-        Z  <- fit_j$Z
+        Z <- fit_j$Z
         xj <- fit_j$x
 
         wi_j <- fit_j$wi0
-        rj   <- fit_j$ei0
+        rj <- fit_j$ei0
 
         if (ncol(Z) == 0L) {
-
             Mj <- diag(k)
-
         } else {
-
             Mj <- diag(k) -
                 Z %*%
-                solve(crossprod(Z, Z * wi_j)) %*%
-                t(Z * wi_j)
+                    solve(crossprod(Z, Z * wi_j)) %*%
+                    t(Z * wi_j)
         }
 
         xtilde_j <- drop(Mj %*% xj)
@@ -174,12 +201,12 @@ flipmeta <- function(fit,
         nu_j <- xtilde_j * wi_j * rj
 
         std_j <- .std_flip_scores_meta(
-            nu    = nu_j,
-            x     = drop(xj),
-            Z     = Z,
-            w     = wi_j,
+            nu = nu_j,
+            x = drop(xj),
+            Z = Z,
+            w = wi_j,
             flips = flips_eff,
-            tol   = tol
+            tol = tol
         )
 
         Sjstd <- std_j$Sstd
@@ -189,7 +216,7 @@ flipmeta <- function(fit,
 
         nu_j_all <- rep(0, kall)
 
-        if (is.null(colnames(flips))) {
+        if (is.null(colnames(flips_all))) {
             nu_j_all <- nu_j
         } else {
             nu_j_all[used_rows] <- nu_j
@@ -220,50 +247,109 @@ flipmeta <- function(fit,
     }
 
     summary_table <- data.frame(
-        .assign     = assign_id[tested_id],
+        .assign = assign_id[tested_id],
         coefficient = tested_names,
-        estimate    = beta_all[tested_names],
-        score       = as.numeric(colSums(scores)),
-        se          = se_all[tested_names],
-        z           = as.numeric(Tspace[1, ]),
-        z.wald      = z_all[tested_names],
-        p           = as.numeric(pval),
-        ci.lb       = ci_lb_all[tested_names],
-        ci.ub       = ci_ub_all[tested_names],
-        tau2_null   = as.numeric(tau2),
+        estimate = beta_all[tested_names],
+        se = se_all[tested_names],
+        statistic.rma = z_all[tested_names],
+        statistic = as.numeric(Tspace[1, ]),
+        score = as.numeric(colSums(scores)),
+        tau2_null = as.numeric(tau2),
+        p = as.numeric(pval),
         stringsAsFactors = FALSE
     )
+
+
 
     rownames(summary_table) <- NULL
 
     out <- list(
-        Tspace        = as.data.frame(Tspace),
+        Tspace = as.data.frame(Tspace),
         summary_table = summary_table,
-        tau2          = rma$tau2,
-        method        = method,
-        scores        = scores,
-        null_fits     = null_fits,
-        flips         = flips,
-        X             = X,
-        yi            = yi,
-        vi            = vi,
-        call          = match.call(),
-        data          = data,
-        k             = k,
-        kall          = kall,
-        B             = B,
-        mods          = mods,
-        rma           = rma
+        tau2 = rma$tau2,
+        method = method,
+        scores = scores,
+        null_fits = null_fits,
+        flips = flips_all,
+        X = X,
+        yi = yi,
+        vi = vi,
+        call = match.call(),
+        data = data,
+        k = k,
+        kall = kall,
+        B = B_eff,
+        mods = mods,
+        rma = rma
     )
 
-    class(out) <- unique(c("flipmeta", class(out)))
+    class(out) <- unique(c("fm", class(out)))
 
     out
 }
 
-#' @export
-.flipmeta_obs_names <- function(fit) {
+.flipmeta_control <- function(control = list()) {
+    if (!is.list(control)) {
+        stop("'control' must be a list.")
+    }
 
+    if (
+        length(control) > 0L &&
+            (is.null(names(control)) || any(names(control) == ""))
+    ) {
+        stop("'control' entries must be named.")
+    }
+
+    defaults <- list(tau2_interval = c(0, 1000))
+
+    unknown <- setdiff(names(control), names(defaults))
+    if (length(unknown) > 0L) {
+        stop("Unknown control parameter(s): ", paste(unknown, collapse = ", "))
+    }
+
+    control_values <- utils::modifyList(defaults, control)
+    tau2_interval <- control_values$tau2_interval
+
+    if (
+        !is.numeric(tau2_interval) ||
+            length(tau2_interval) != 2L ||
+            any(is.na(tau2_interval)) ||
+            !all(is.finite(tau2_interval)) ||
+            tau2_interval[1] >= tau2_interval[2]
+    ) {
+        stop(
+            "'control$tau2_interval' must be a finite numeric vector of length two with increasing values."
+        )
+    }
+
+    control_values$tau2_interval <- as.numeric(tau2_interval)
+    control_values
+}
+
+.flipmeta_match_method <- function(method = NULL) {
+    if (is.null(method)) {
+        return(NULL)
+    }
+
+    if (!is.character(method) || length(method) != 1L || is.na(method)) {
+        stop("'method' must be one of 'REML', 'ML', 'DL', or 'EE'.")
+    }
+
+    method <- toupper(method)
+    match.arg(method, c("REML", "ML", "DL", "EE"))
+}
+
+.flipmeta_refit_rma_X <- function(yi, vi, X, method) {
+    metafor::rma.uni(
+        yi = yi,
+        vi = vi,
+        mods = X,
+        intercept = FALSE,
+        method = method
+    )
+}
+
+.flipmeta_obs_names <- function(fit) {
     X <- as.matrix(fit$X)
 
     rn <- rownames(X)
@@ -275,9 +361,7 @@ flipmeta <- function(fit,
     as.character(rn)
 }
 
-#' @export
 .flipmeta_coef_names <- function(fit) {
-
     X <- as.matrix(fit$X)
 
     nms <- colnames(X)
@@ -289,9 +373,7 @@ flipmeta <- function(fit,
     nms
 }
 
-#' @export
 .resolve_tested_coeffs <- function(fits, tested_coeffs = NULL) {
-
     all_names <- lapply(fits, .flipmeta_coef_names)
 
     if (is.null(tested_coeffs)) {
@@ -300,7 +382,9 @@ flipmeta <- function(fit,
 
     if (is.list(tested_coeffs)) {
         if (length(tested_coeffs) != length(fits)) {
-            stop("If 'tested_coeffs' is a list, it must have the same length as 'fits'.")
+            stop(
+                "If 'tested_coeffs' is a list, it must have the same length as 'fits'."
+            )
         }
 
         return(tested_coeffs)

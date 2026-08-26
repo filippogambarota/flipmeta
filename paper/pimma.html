@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.21">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Matteo Manente">
+<meta name="author" content="Livio Finos">
+<meta name="author" content="Gianmarco Altoè">
+<meta name="author" content="Filippo Gambarota">
+<meta name="keywords" content="template, demo">
+<meta name="description" content="PIMMA">
+
+<title>Post-selection inference in multiverse meta-analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="pimma_files/libs/clipboard/clipboard.min.js"></script>
+<script src="pimma_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="pimma_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="pimma_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="pimma_files/libs/quarto-html/popper.min.js"></script>
+<script src="pimma_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="pimma_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="pimma_files/libs/quarto-html/quarto-syntax-highlighting-ea1d7ac60288e0f1efdbc993fd8432ae.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="pimma_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="pimma_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="pimma_files/libs/bootstrap/bootstrap-f101d4c31bead9ed0a60b9f5329333aa.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css">
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../_extensions/wjschne/apaquarto/apa.css">
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#firstheader" id="toc-firstheader" class="nav-link active" data-scroll-target="#firstheader">Post-selection inference in multiverse meta-analysis</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#mixed-effects-meta-regression" id="toc-mixed-effects-meta-regression" class="nav-link" data-scroll-target="#mixed-effects-meta-regression">Mixed-Effects Meta-Regression</a></li>
+  <li><a href="#meta-regression-using-flipscores" id="toc-meta-regression-using-flipscores" class="nav-link" data-scroll-target="#meta-regression-using-flipscores">Meta-regression using flipscores</a></li>
+  <li><a href="#from-flipscores-to-pima" id="toc-from-flipscores-to-pima" class="nav-link" data-scroll-target="#from-flipscores-to-pima">From flipscores to PIMA</a></li>
+  <li><a href="#simulation-study" id="toc-simulation-study" class="nav-link" data-scroll-target="#simulation-study">Simulation study</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<!-- This file is intentionally empty. The APA title page for HTML output
+     is generated by frontmatter.lua. Do not add content here — it would
+     override the Lua-generated title block. -->
+
+
+<br>
+
+<br>
+
+<section id="title" class="level1 title unnumbered unlisted">
+<h1 class="title unnumbered unlisted">Post-selection inference in multiverse meta-analysis</h1>
+<div class="Author">
+<br>
+
+<p>Matteo Manente<sup>1</sup>, Livio Finos<sup>2</sup>, Gianmarco Altoè<sup>1</sup>, and Filippo Gambarota<sup>1</sup></p>
+<p><sup>1</sup>Department of Developmental Psychology and Socialization, University of Padova</p>
+<p><sup>2</sup>Department of Statistical Sciences, University of Padova</p>
+</div>
+<br>
+
+<br>
+
+</section>
+<section id="author-note" class="level1 unnumbered unlisted AuthorNote">
+<h1 class="unnumbered unlisted AuthorNote">Author Note</h1>
+<p>Correspondence concerning this article should be addressed to Filippo Gambarota, Department of Developmental Psychology and Socialization, University of Padova, Via Venezia 8, Padova, Italy 35131, Email: <a href="mailto:filippo.gambarota@unipd.it">filippo.gambarota@unipd.it</a></p>
+<br>
+</section>
+<section id="abstract" class="level1 unnumbered unlisted AuthorNote">
+<h1 class="unnumbered unlisted AuthorNote">Abstract</h1>
+<p><em>Keywords</em>: template, demo</p>
+<br>
+</section>
+<section id="firstheader" class="level1 title unnumbered">
+<h1 class="title unnumbered">Post-selection inference in multiverse meta-analysis</h1>
+</section>
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Doing research can be hard. Researchers must make many decisions during a study. These decisions concern choosing between many measurement instruments, data pre-processing, and statistical models. Each decision is usually reasonable and defensible but often arbitrary. Together, these decisions are known as <em>researcher degrees of freedom</em> <span class="citation" data-cites="Simmons2011-ne">(<a href="#ref-Simmons2011-ne" role="doc-biblioref">Simmons et al., 2011</a>)</span>.</p>
+<p>Researcher degrees of freedom are especially common in psychology and the social sciences, but they also occur in other fields such as medicine and biology <span class="citation" data-cites="Errington2021-fb Nosek2022-ab">(<a href="#ref-Errington2021-fb" role="doc-biblioref">Errington et al., 2021</a>; <a href="#ref-Nosek2022-ab" role="doc-biblioref">Nosek et al., 2022</a>)</span>. In psychology for example, phenomena are often hard to define and causal relationships between variables are difficult to establish <span class="citation" data-cites="Eronen2021-fn">(<a href="#ref-Eronen2021-fn" role="doc-biblioref">Eronen &amp; Bringmann, 2021</a>)</span>. There are numerous measurement instruments, which are often poorly validated <span class="citation" data-cites="Flake2020-wz">(<a href="#ref-Flake2020-wz" role="doc-biblioref">Flake &amp; Fried, 2020</a>)</span>. Data analysis is also complex and rarely guided by a single optimal solution. Together, these features make it difficult to justify one analytic approach over another. In practice, there is often no single best procedure for data collection, pre-processing, or analysis. Researchers must therefore choose one path among many valid ones in the so-called “garden of forking paths” <span class="citation" data-cites="Gelman2013-hm">(<a href="#ref-Gelman2013-hm" role="doc-biblioref">Gelman &amp; Loken, 2013</a>)</span>. Importantly, different choices can lead to different results. Even with the same data and research question, different analytical strategies may yield different conclusions <span class="citation" data-cites="Silberzahn2018-yu">(<a href="#ref-Silberzahn2018-yu" role="doc-biblioref">Silberzahn et al., 2018</a>)</span>. Researchers therefore often face a <em>multiverse</em> of equally reasonable outcomes <span class="citation" data-cites="Steegen2016-gx">(<a href="#ref-Steegen2016-gx" role="doc-biblioref">Steegen et al., 2016</a>)</span>.</p>
+<p>Because researchers operate within a multiverse of possible choices, analytic decisions often depend on the observed data. Even when researchers do not engage in questionable research practices, such as <em>p-hacking</em>—testing many analytic options until a non-significant result becomes significant—they implicitly face a <em>multiple comparisons problem</em> <span class="citation" data-cites="Gelman2013-hm">(<a href="#ref-Gelman2013-hm" role="doc-biblioref">Gelman &amp; Loken, 2013</a>)</span>. Without proper adjustment, this process inflates the false positive rate beyond the nominal level (e.g., α = 5%). As a result, researcher degrees of freedom increase the prevalence of false positive findings in the literature and are therefore considered one of the causes of the replication crisis <span class="citation" data-cites="Open-Science-Collaboration2015-al Wicherts2016-cz">(<a href="#ref-Open-Science-Collaboration2015-al" role="doc-biblioref">Open Science Collaboration, 2015</a>; <a href="#ref-Wicherts2016-cz" role="doc-biblioref">Wicherts et al., 2016</a>)</span>.</p>
+<p>Importantly, researcher degrees of freedom are unavoidable. They are a natural part of empirical research. The problem lies not in their existence but in their opacity. When only one analytic path is reported, reviewers and readers cannot assess how results depend on alternative choices or how robust the findings truly are.</p>
+<p><em>Multiverse Analysis</em> was proposed to address this problem by making the full set of analytic choices and results transparent <span class="citation" data-cites="Steegen2016-gx">(<a href="#ref-Steegen2016-gx" role="doc-biblioref">Steegen et al., 2016</a>)</span>. The core idea is simple: the data are analyzed using all reasonable combinations of analytic choices, and then the full set of results is reported <span class="citation" data-cites="Simonsohn2020-sr Steegen2016-gx">(<a href="#ref-Simonsohn2020-sr" role="doc-biblioref">Simonsohn et al., 2020</a>; <a href="#ref-Steegen2016-gx" role="doc-biblioref">Steegen et al., 2016</a>)</span>. This approach makes explicit the variability from analytic choices and allows readers to evaluate how conclusions depend on arbitrary decisions.</p>
+<p>Although Multiverse Analysis was developed mainly for primary studies, meta-analyses face the same challenges. A <em>Meta-Analysis</em> aims to quantitatively synthesize evidence across studies <span class="citation" data-cites="Borenstein2009-mo">(<a href="#ref-Borenstein2009-mo" role="doc-biblioref">Borenstein et al., 2009</a>)</span>. However, meta-analyses are also affected by researcher degrees of freedom. Researchers must choose, for example, which studies to include, which effect size metrics to use, and whether to apply fixed-effect or random-effects models. Each decision can be reasonable, yet it can influence the final result. This becomes even more relevant with meta-analyses with complex data structures (e.g., multilevel and/or multivariate) that often require imputing or assuming missing information for effect size computation.</p>
+<p>This issue is particularly important because meta-analyses sit at the top of the hierarchy of evidence. They often inform theory, clinical guidelines, and policy decisions. Therefore, if meta-analytic results are sensitive to arbitrary analytic choices, conclusions may be misleading. Assessing robustness is therefore crucial. For this reason, multiverse approaches can be naturally applied to meta-analyses.</p>
+<p><em>Multiverse Meta-Analysis</em> allows researchers to examine how meta-analytical results change across different analytic specifications. This approach is useful for identifying fragile evidence. If conclusions change dramatically after small analytic changes, the results should be interpreted carefully. Such fragility may point to weak theory, poor measurement, or heterogeneous effects. In contrast, results that remain consistent across specifications indicate robust evidence and stronger confidence in the conclusions.</p>
+<p>However, despite these advantages, current methods for Multiverse Analysis are limited. Many are purely descriptive, such as the original Multiverse Analysis method proposed by <span class="citation" data-cites="Steegen2016-gx">(<a href="#ref-Steegen2016-gx" role="doc-biblioref">Steegen et al., 2016</a>)</span> or the <em>Vibration of Effects</em> <span class="citation" data-cites="Patel2015-pn">(<a href="#ref-Patel2015-pn" role="doc-biblioref">Patel et al., 2015</a>)</span>, and do not support formal inference. Even existing inferential approaches face constraints. <em>Specification Curve Analysis</em> (SCA) <span class="citation" data-cites="Simonsohn2020-sr">(<a href="#ref-Simonsohn2020-sr" role="doc-biblioref">Simonsohn et al., 2020</a>)</span>, for example, is one of the most widely used inferential Multiverse Meta-Analysis tools (see, e.g., <span class="citation" data-cites="Pietschnig2022-mg Plessen2023-ex">(<a href="#ref-Pietschnig2022-mg" role="doc-biblioref">Pietschnig et al., 2022</a>; <a href="#ref-Plessen2023-ex" role="doc-biblioref">Plessen et al., 2023</a>)</span>). SCA tests a joint null hypothesis across all specifications, evaluating whether at least one specification differs from the null value. However, this test provides limited insight <span class="citation" data-cites="Oberauer2019-xv">(<a href="#ref-Oberauer2019-xv" role="doc-biblioref">Oberauer &amp; Lewandowsky, 2019, p. 1609</a>)</span>. This procedure provides only weak control of the Family-Wise Error Rate (FWER) and supports inference exclusively at the level of the joint null hypothesis. Although SCA visually displays the distribution of effect sizes and their statistical significance, the inferential component is limited to this global test and does not extend to individual specifications. In addition, SCA is mainly suited for linear models and does not account for violations of parametric assumptions that are common in random-effects meta-analyses <span class="citation" data-cites="Follmann1999-ha">(<a href="#ref-Follmann1999-ha" role="doc-biblioref">Follmann &amp; Proschan, 1999</a>)</span>. These limitations are especially problematic for meta-analyses, which often guide clinical and policy decisions.</p>
+<p>For these reasons, we instead propose using the <em>Post-selection Inference in Multiverse Analysis</em> (PIMA) <span class="citation" data-cites="Girardi2024-ip">(<a href="#ref-Girardi2024-ip" role="doc-biblioref">Girardi et al., 2024</a>)</span> framework for Multiverse Meta-Analysis. PIMA provides a formal inferential approach that explicitly accounts for multiple comparisons across analytic specifications. It also enables selective inference by allowing researchers to identify even a single significant specification within the entire multiverse while controlling the Type I error rate at a chosen level (e.g., α = 0.05) and maintaining good statistical power. Additionally, by using permutation tests, PIMA does not rely on standard parametric assumptions, which can be unreliable in meta-analyses with a small number of studies or heterogeneous effects <span class="citation" data-cites="Follmann1999-ha">(<a href="#ref-Follmann1999-ha" role="doc-biblioref">Follmann &amp; Proschan, 1999</a>)</span>. Taken together, these features make PIMA particularly appropriate for Multiverse Meta-Analysis. However, to date, PIMA has not been applied in this context.</p>
+<p>This paper provides the first such application. First, we describe the statistical principles of PIMA and explain why they are well suited for multiverse meta-analytical settings. Second, we present an empirical application. We apply PIMA to a Multiverse Meta-Analysis of the association between brain size and intelligence <span class="citation" data-cites="Pietschnig2022-mg">(<a href="#ref-Pietschnig2022-mg" role="doc-biblioref">Pietschnig et al., 2022</a>)</span>. Finally, we discuss the results and their implications for robustness assessment in meta-analytical research.</p>
+</section>
+<section id="mixed-effects-meta-regression" class="level1">
+<h1>Mixed-Effects Meta-Regression</h1>
+<p>In this section, we present a general formulation of the mixed-effects meta-regression model, following the notation of <span class="citation" data-cites="Viechtbauer2015-tn">Viechtbauer et al. (<a href="#ref-Viechtbauer2015-tn" role="doc-biblioref">2015</a>)</span>. In a meta-analysis with <span class="math inline">k</span> independent studies, let <span class="math inline">y_i</span> denote the observed effect size estimate in the <span class="math inline">i</span>th study, with corresponding sampling variance <span class="math inline">v_i</span>. The model can be written as</p>
+<p><span id="eq-meta-reg"><span class="math display">
+\begin{aligned}
+\mathbf{y} &amp;= \mathbf{X} \boldsymbol{\beta} + \mathbf{u} + \mathbf{e}, \\
+\mathbf{u} &amp;\sim \mathcal{N}(\mathbf{0}, \tau^2\mathbf{I}), \\
+\mathbf{e} &amp;\sim \mathcal{N}(\mathbf{0}, \mathbf{V}),
+\end{aligned}
+\tag{1}</span></span></p>
+<p>where <span class="math inline">\mathbf{y}</span> is the <span class="math inline">k \times 1</span> vector of observed effect size estimates, <span class="math inline">\mathbf{X}</span> is the <span class="math inline">k \times (p+1)</span> model matrix, and <span class="math inline">\boldsymbol{\beta}</span> is the vector of <span class="math inline">p+1</span> regression coefficients. The first column of <span class="math inline">\mathbf{X}</span> contains ones and represents the intercept, while the remaining <span class="math inline">p</span> columns contain the moderator values. The vector <span class="math inline">\mathbf{u}</span> contains the study-level random effects and is assumed to follow a normal distribution with mean zero and variance <span class="math inline">\tau^2</span>, whereas <span class="math inline">\mathbf{e}</span> contains the within-study sampling errors. The sampling errors are assumed to be normally distributed with diagonal variance-covariance matrix <span class="math inline">\mathbf{V} = \operatorname{diag}(v_1,\ldots,v_k)</span>, where the sampling variances <span class="math inline">v_i</span> are treated as known. It follows that the marginal distribution of the observed effect size estimates is</p>
+<p><span id="eq-marginal"><span class="math display">
+\mathbf{y} \sim \mathcal{N}\left(\mathbf{X}\boldsymbol{\beta}, \boldsymbol{\Sigma}\right),
+\qquad
+\boldsymbol{\Sigma} = \mathbf{V} + \tau^2 \mathbf{I}.
+\tag{2}</span></span></p>
+<p>For a fixed value of <span class="math inline">\tau^2</span>, the regression coefficients can be estimated by weighted least squares. Let <span class="math inline">\mathbf{W} = \boldsymbol{\Sigma}^{-1} = (\mathbf{V} + \tau^2 \mathbf{I})^{-1}</span>. The estimator of <span class="math inline">\boldsymbol{\beta}</span> is then</p>
+<p><span id="eq-wls"><span class="math display">
+\mathbf{b}
+=
+(\mathbf{X}^{\top}\mathbf{W}\mathbf{X})^{-1}
+\mathbf{X}^{\top}\mathbf{W}\mathbf{y}.
+\tag{3}</span></span></p>
+<p>Since <span class="math inline">\tau^2</span> is unknown, the weights used in practice are obtained by replacing <span class="math inline">\tau^2</span> with an estimate <span class="math inline">\hat{\tau}^2</span>, so that <span class="math inline">\hat{\mathbf{W}} = (\mathbf{V}+\hat{\tau}^2\mathbf{I})^{-1}</span>. Several estimators have been proposed for <span class="math inline">\tau^2</span> <span class="citation" data-cites="Viechtbauer2005-yh">(see <a href="#ref-Viechtbauer2005-yh" role="doc-biblioref"><strong>Viechtbauer2005-yh?</strong></a>)</span>. We focus here on the DerSimonian–Laird estimator <span class="citation" data-cites="DerSimonian1986-ju">(<a href="#ref-DerSimonian1986-ju" role="doc-biblioref"><strong>DerSimonian1986-ju?</strong></a>)</span>, as a commonly used non-iterative method-of-moments estimator, and on restricted maximum likelihood, which is the estimator used in the present analyses.</p>
+<p>Both estimators can be expressed using the matrix</p>
+<p><span id="eq-het-p"><span class="math display">
+\mathbf{P}
+=
+\mathbf{W}
+-
+\mathbf{W}\mathbf{X}
+(\mathbf{X}^{\top}\mathbf{W}\mathbf{X})^{-1}
+\mathbf{X}^{\top}\mathbf{W}.
+\tag{4}</span></span></p>
+<p>For the DerSimonian–Laird estimator, <span class="math inline">\mathbf{W}</span> is computed using only the inverse sampling variances, that is, <span class="math inline">w_i = v_i^{-1}</span>. The estimator is given by</p>
+<p><span id="eq-het-dl"><span class="math display">
+\hat{\tau}^2_{\mathrm{DL}}
+=
+\frac{
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y} - (k-p-1)
+}{
+\operatorname{tr}(\mathbf{P})
+}.
+\tag{5}</span></span></p>
+<p>Because <span class="math inline">\tau^2</span> is a variance component, negative values of <span class="math inline">\hat{\tau}^2_{\mathrm{DL}}</span> are truncated to zero.</p>
+<p>Likelihood-based estimators are obtained from the marginal normal model in <a href="#eq-marginal" class="quarto-xref">Equation&nbsp;2</a>. The maximum likelihood log-likelihood is</p>
+<p><span id="eq-ml-loglik"><span class="math display">
+\ell_{\mathrm{ML}}(\boldsymbol{\beta}, \tau^2)
+=
+-\frac{1}{2}
+\left[
+k\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+(\mathbf{y}-\mathbf{X}\boldsymbol{\beta})^{\top}
+\boldsymbol{\Sigma}^{-1}
+(\mathbf{y}-\mathbf{X}\boldsymbol{\beta})
+\right].
+\tag{6}</span></span></p>
+<p>For a fixed value of <span class="math inline">\tau^2</span>, maximizing <a href="#eq-ml-loglik" class="quarto-xref">Equation&nbsp;6</a> with respect to <span class="math inline">\boldsymbol{\beta}</span> gives the weighted least squares estimator in <a href="#eq-wls" class="quarto-xref">Equation&nbsp;3</a>. Substituting this estimator into the likelihood yields the profiled log-likelihood</p>
+<p><span id="eq-ml-profile"><span class="math display">
+\ell_{\mathrm{ML}}^{p}(\tau^2)
+=
+-\frac{1}{2}
+\left[
+k\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y}
+\right].
+\tag{7}</span></span></p>
+<p>The maximum likelihood estimate of the residual heterogeneity variance is obtained by maximizing the profiled log-likelihood in <a href="#eq-ml-profile" class="quarto-xref">Equation&nbsp;7</a> over the parameter space <span class="math inline">\tau^2 \geq 0</span>.</p>
+<p>However, maximum likelihood estimators of variance components are generally downward biased because they do not account for the loss of degrees of freedom associated with estimating the fixed effects. Restricted maximum likelihood addresses this issue by maximizing a likelihood based on linear combinations of the data that remove the fixed effects. In the present model, the restricted log-likelihood can be written as</p>
+<p><span id="eq-reml-loglik"><span class="math display">
+\ell_{\mathrm{REML}}(\tau^2)
+=
+-\frac{1}{2}
+\left[
+(k-p-1)\log(2\pi)
++
+\log|\boldsymbol{\Sigma}|
++
+\log|\mathbf{X}^{\top}\mathbf{W}\mathbf{X}|
++
+\mathbf{y}^{\top}\mathbf{P}\mathbf{y}
+\right].
+\tag{8}</span></span></p>
+<p>The REML estimate of the residual heterogeneity variance is obtained by maximizing the restricted log-likelihood in <a href="#eq-reml-loglik" class="quarto-xref">Equation&nbsp;8</a> over the parameter space <span class="math inline">\tau^2 \geq 0</span>.</p>
+<p>After <span class="math inline">\hat{\tau}^2_{\mathrm{REML}}</span> has been obtained, the final estimates of the meta-regression coefficients are computed using <span class="math inline">\tau^2_{\mathrm{REML}}</span> into <a href="#eq-wls" class="quarto-xref">Equation&nbsp;3</a>.</p>
+<p>Several methods have been proposed to perform statistical inference on the regression coefficients in mixed-effects meta-regression models <span class="citation" data-cites="Viechtbauer2015-tn">(see <a href="#ref-Viechtbauer2015-tn" role="doc-biblioref">Viechtbauer et al., 2015</a>)</span>. Here, we consider the three main approaches that will be compared in the simulation study: Wald-type inference, the Knapp–Hartung method <span class="citation" data-cites="Knapp2003-qx">(<a href="#ref-Knapp2003-qx" role="doc-biblioref"><strong>Knapp2003-qx?</strong></a>)</span>, and permutation testing <span class="citation" data-cites="Follmann1999-ha Higgins2004-gf">(<a href="#ref-Follmann1999-ha" role="doc-biblioref">Follmann &amp; Proschan, 1999</a>; <a href="#ref-Higgins2004-gf" role="doc-biblioref"><strong>Higgins2004-gf?</strong></a>)</span>. The Wald-type and Knapp–Hartung methods are both based on test statistics obtained by dividing the estimated regression coefficient <span class="math inline">b_j</span> by its corresponding standard error. In the following, <span class="math inline">b_j</span> denotes the estimate of the coefficient <span class="math inline">\beta_j</span>, with <span class="math inline">j = 0,1,\ldots,p</span> when the intercept is included and <span class="math inline">j = 1,\ldots,p</span> when inference is restricted to the moderator effects.</p>
+<p>Under the standard Wald-type approach, the variance-covariance matrix of the estimated regression coefficients is estimated as</p>
+<p><span id="eq-vb-wald"><span class="math display">
+\hat{\mathbf{V}}_{\mathbf{b}}
+=
+(\mathbf{X}^{\top}\hat{\mathbf{W}}\mathbf{X})^{-1},
+\tag{9}</span></span></p>
+<p>where</p>
+<p><span class="math display">
+\hat{\mathbf{W}}
+=
+(\mathbf{V}+\hat{\tau}^2\mathbf{I})^{-1}.
+</span></p>
+<p>The standard error of <span class="math inline">b_j</span> is given by the square root of the corresponding diagonal element of <span class="math inline">\hat{\mathbf{V}}_{\mathbf{b}}</span>. The Wald-type test statistic is then defined as</p>
+<p><span id="eq-wald-stat"><span class="math display">
+z_j
+=
+\frac{b_j}{\sqrt{\widehat{\operatorname{Var}}(b_j)}}.
+\tag{10}</span></span></p>
+<p>Under the null hypothesis <span class="math inline">H_0:\beta_j = 0</span>, <span class="math inline">z_j</span> is compared against the critical value calculated at the <span class="math inline">\alpha</span> level of a standard normal distribution.</p>
+<p>The Knapp–Hartung method uses the same coefficient estimates but replaces the standard variance-covariance matrix (see <a href="#eq-vb-wald" class="quarto-xref">Equation&nbsp;9</a>) with an adjusted version as <span class="math inline">\hat{\mathbf{V}}_{\mathbf{b} \mathrm{KH}} = s^2 \hat{\mathbf{V}}_{\mathbf{b}}</span> with <span class="math inline">s^2</span> calculated as</p>
+<p><span id="eq-kh-scale"><span class="math display">
+s^2
+=
+\frac{
+\mathbf{y}^{\top}\hat{\mathbf{P}}\mathbf{y}
+}{
+k-p-1
+}.
+\tag{11}</span></span></p>
+<p>The test statistic is computed as in <a href="#eq-wald-stat" class="quarto-xref">Equation&nbsp;10</a>, using the corresponding adjusted standard error, and is compared against a <span class="math inline">t</span> distribution with <span class="math inline">k-p-1</span> degrees of freedom. A truncated version of the Knapp–Hartung method sets <span class="math inline">s^2 = 1</span> whenever <span class="math inline">s^2 &lt; 1</span>, thereby preventing the adjusted standard error from being smaller than the standard Wald-type standard error.</p>
+<p>Permutation testing provides a non-parametric alternative for testing moderator effects. For a given coefficient <span class="math inline">b_j</span>, the observed Wald-type statistic <span class="math inline">z_j</span> is first computed from the original data. The rows of the model matrix <span class="math inline">\mathbf{X}</span> are then permuted, thereby breaking the association between the observed effect sizes and the moderator values while preserving the distribution of the moderators. For each permutation <span class="math inline">m = 1,\ldots,M</span>, the meta-regression model is refitted and the corresponding test statistic <span class="math inline">z_j^{(m)}</span> is computed. The permutation distribution of <span class="math inline">z_j</span> is given by the set of statistics obtained under these permuted data sets. For a two-sided test, the permutation <span class="math inline">p</span> value can be computed as the proportion of permuted statistics that are at least as extreme as the observed statistic,</p>
+<p><span id="eq-perm-p"><span class="math display">
+p_{\mathrm{perm}}
+=
+\frac{
+1 + \sum_{m=1}^{M}
+\mathbb{I}\left(
+|z_j^{(m)}| \geq |z_j|
+\right)
+}{
+1 + M
+}.
+\tag{12}</span></span></p>
+<p>When all <span class="math inline">k!</span> permutations are enumerated, this procedure yields the exact permutation test. When <span class="math inline">k!</span> is too large, the permutation distribution is approximated using a sufficiently large number of random permutations.</p>
+</section>
+<section id="meta-regression-using-flipscores" class="level1">
+<h1>Meta-regression using flipscores</h1>
+<p>The mixed-effects meta-regression model can be reformulated as a score-based test. This provides the link between moderator testing in meta-analysis and the sign-flipping score framework used by PIMA. The key change is that the resampling is no longer applied to the rows of the model matrix, as in the permutation test described above, but to the study-level contributions to the score.</p>
+<p>To align the notation with the sign-flipping score literature, we partition the design matrix into focal and nuisance components. In this section, <span class="math inline">\mathbf{X}</span> denotes the <span class="math inline">k \times q</span> matrix of focal predictors, whose coefficients are tested, and <span class="math inline">\mathbf{Z}</span> denotes the <span class="math inline">k \times r</span> matrix of nuisance predictors. The full design matrix is therefore <span class="math inline">[\mathbf{X},\mathbf{Z}]</span>. This differs from the previous section, where <span class="math inline">\mathbf{X}</span> denoted the complete meta-regression design matrix.</p>
+<p>The model can be written as</p>
+<p><span id="eq-flipmeta-model"><span class="math display">
+\mathbf{y}
+\sim
+\mathcal{N}
+\left(
+\mathbf{X}\boldsymbol{\beta}
++
+\mathbf{Z}\boldsymbol{\gamma},
+\boldsymbol{\Sigma}
+\right),
+\qquad
+\boldsymbol{\Sigma}
+=
+\mathbf{V}
++
+\tau^2\mathbf{I}.
+\tag{13}</span></span></p>
+<p>We test <span class="math inline">H_0:\boldsymbol{\beta}=\boldsymbol{\beta}_0</span>, usually with <span class="math inline">\boldsymbol{\beta}_0=\mathbf{0}</span>, while <span class="math inline">\boldsymbol{\gamma}</span> and <span class="math inline">\tau^2</span> remain nuisance parameters. Under the null model, we estimate <span class="math inline">\hat{\boldsymbol{\gamma}}_0</span> and <span class="math inline">\hat{\tau}_0^2</span> and define</p>
+<p><span id="eq-null-weights"><span class="math display">
+\widehat{\boldsymbol{\Sigma}}_0
+=
+\mathbf{V}
++
+\hat{\tau}_0^2\mathbf{I},
+\qquad
+\widehat{\mathbf{W}}_0
+=
+\widehat{\boldsymbol{\Sigma}}_0^{-1}.
+\tag{14}</span></span></p>
+<p>The fitted values and residuals under the null are</p>
+<p><span id="eq-null-residuals"><span class="math display">
+\hat{\boldsymbol{\mu}}_0
+=
+\mathbf{X}\boldsymbol{\beta}_0
++
+\mathbf{Z}\hat{\boldsymbol{\gamma}}_0,
+\qquad
+\hat{\mathbf{r}}_0
+=
+\mathbf{y}
+-
+\hat{\boldsymbol{\mu}}_0.
+\tag{15}</span></span></p>
+<p>For fixed <span class="math inline">\hat{\tau}_0^2</span>, the ordinary score for <span class="math inline">\boldsymbol{\beta}</span> is <span class="math inline">k^{-1/2}\mathbf{X}^{\top}\widehat{\mathbf{W}}_0\hat{\mathbf{r}}_0</span>. However, because the nuisance coefficients are estimated under the null, the ordinary score must be replaced by the effective score <span class="citation" data-cites="Hemerik2020-nq De-Santis2025-ej">(<a href="#ref-De-Santis2025-ej" role="doc-biblioref">De Santis et al., 2025</a>; <a href="#ref-Hemerik2020-nq" role="doc-biblioref">Hemerik et al., 2020</a>)</span>. Define the weighted hat matrix for the nuisance design as</p>
+<p><span id="eq-hz"><span class="math display">
+\mathbf{H}_Z
+=
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{Z}
+\left(
+\mathbf{Z}^{\top}
+\widehat{\mathbf{W}}_0
+\mathbf{Z}
+\right)^{-1}
+\mathbf{Z}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}.
+\tag{16}</span></span></p>
+<p>The effective score, evaluated under <span class="math inline">H_0</span>, is then</p>
+<p><span id="eq-effective-score-observed"><span class="math display">
+\mathbf{S}_{\mathrm{eff}}
+=
+k^{-1/2}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\hat{\mathbf{r}}_0.
+\tag{17}</span></span></p>
+<p>This expression is the meta-regression analogue of the effective score used in flipscores. It removes from the focal score the component explained by the nuisance score. Equivalently, it can be written as a sum of study-level effective score contributions,</p>
+<p><span id="eq-score-contributions-observed"><span class="math display">
+\mathbf{S}_{\mathrm{eff}}
+=
+k^{-1/2}
+\sum_{i=1}^{k}
+\boldsymbol{\nu}_i,
+\tag{18}</span></span></p>
+<p>where <span class="math inline">\boldsymbol{\nu}_i</span> is the contribution of study <span class="math inline">i</span> to the effective score. With a single focal moderator and an intercept-only nuisance model, this reduces to</p>
+<p><span id="eq-simple-contribution"><span class="math display">
+\nu_i
+=
+(x_i-\bar{x}_w)
+\hat{w}_{0i}
+\hat{r}_{0i},
+\qquad
+\bar{x}_w
+=
+\frac{\sum_{i=1}^{k}\hat{w}_{0i}x_i}{\sum_{i=1}^{k}\hat{w}_{0i}}.
+\tag{19}</span></span></p>
+<p>Thus, in the simplest case, the effective score is a weighted association between the centered moderator and the residuals under the null model. Under <span class="math inline">H_0</span>, the effective score contributions have mean zero and are the quantities to be sign-flipped <span class="citation" data-cites="Hemerik2020-nq De-Santis2025-ej Girardi2024-ip">(<a href="#ref-De-Santis2025-ej" role="doc-biblioref">De Santis et al., 2025</a>; <a href="#ref-Girardi2024-ip" role="doc-biblioref">Girardi et al., 2024</a>; <a href="#ref-Hemerik2020-nq" role="doc-biblioref">Hemerik et al., 2020</a>)</span>.</p>
+<p>Let <span class="math inline">\mathbf{F}^{(b)}=\operatorname{diag}(g_1^{(b)},\ldots,g_k^{(b)})</span> be a diagonal sign-flipping matrix, with <span class="math inline">g_i^{(b)}\in\{-1,+1\}</span>. The first flip is fixed as the identity, <span class="math inline">\mathbf{F}^{(1)}=\mathbf{I}</span>, and the remaining <span class="math inline">B-1</span> matrices are sampled at random. For flip <span class="math inline">b</span>, the flipped effective score is</p>
+<p><span id="eq-effective-score-flipped"><span class="math display">
+\mathbf{S}_{\mathrm{eff}}^{(b)}
+=
+k^{-1/2}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{F}^{(b)}
+\hat{\mathbf{r}}_0,
+\tag{20}</span></span></p>
+<p>or, equivalently,</p>
+<p><span id="eq-score-contributions-flipped"><span class="math display">
+\mathbf{S}_{\mathrm{eff}}^{(b)}
+=
+k^{-1/2}
+\sum_{i=1}^{k}
+g_i^{(b)}
+\boldsymbol{\nu}_i.
+\tag{21}</span></span></p>
+<p>Following the standardized sign-flip score test, each flipped score is standardized by its flip-specific variance <span class="citation" data-cites="De-Santis2025-ej Girardi2024-ip">(<a href="#ref-De-Santis2025-ej" role="doc-biblioref">De Santis et al., 2025</a>; <a href="#ref-Girardi2024-ip" role="doc-biblioref">Girardi et al., 2024</a>)</span>. In the present meta-regression setting, the variance estimator is</p>
+<p><span id="eq-flip-variance"><span class="math display">
+\widehat{\mathbf{C}}^{(b)}
+=
+k^{-1}
+\mathbf{X}^{\top}
+\widehat{\mathbf{W}}_0^{1/2}
+(\mathbf{I}-\mathbf{H}_Z)
+\mathbf{F}^{(b)}
+(\mathbf{I}-\mathbf{H}_Z)
+\mathbf{F}^{(b)}
+(\mathbf{I}-\mathbf{H}_Z)
+\widehat{\mathbf{W}}_0^{1/2}
+\mathbf{X}.
+\tag{22}</span></span></p>
+<p>For a univariate focal parameter, we use</p>
+<p><span id="eq-univ-score-stat"><span class="math display">
+T^{(b)}
+=
+\left|
+\frac{
+S_{\mathrm{eff}}^{(b)}
+}{
+\sqrt{\widehat{C}^{(b)}}
+}
+\right|.
+\tag{23}</span></span></p>
+<p>For a multidimensional focal parameter, we define <span class="math inline">\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)}=(\widehat{\mathbf{C}}^{(b)})^{-1/2}\mathbf{S}_{\mathrm{eff}}^{(b)}</span> and use the quadratic statistic</p>
+<p><span id="eq-multiv-score-stat"><span class="math display">
+T^{(b)}
+=
+\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)\top}
+\widetilde{\mathbf{S}}_{\mathrm{eff}}^{(b)}.
+\tag{24}</span></span></p>
+<p>The sign-flipping <span class="math inline">p</span> value for a single specification is</p>
+<p><span id="eq-flip-p"><span class="math display">
+p_{\mathrm{flip}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}
+\left(
+T^{(b)}
+\geq
+T^{(1)}
+\right)
+}{B}.
+\tag{25}</span></span></p>
+<p>This test keeps the null model fixed and constructs the reference distribution by sign-flipping the study-level effective score contributions. It therefore differs from the classical permutation test, which permutes moderator values and refits the model.</p>
+<p>This model inherites all the advantage of the flipscores testing framework in terms of rubustaness to variance misspesification. A more pratically relevant advantge is merely computational. While standard permutatation tests requires estimating all focal and nouisance parameters (including <span class="math inline">\tau^2</span>) the flipscores method requires refitting the model once for each tested coefficient. We explored the computational advantages in the supplementary materials but a meta-analysis with <span class="math inline">k = 100</span> studies and 3 predictors using the <code>metafor::permutest()</code> function takes roughly 14 seconds while using the flipscores approach takes 0.3 seconds.</p>
+</section>
+<section id="from-flipscores-to-pima" class="level1">
+<h1>From flipscores to PIMA</h1>
+<p>The score sign-flipping test provides inference for a single meta-analytic specification. PIMA extends this logic to a multiverse by applying the same sign-flipping transformations across all admissible specifications and using the empirical distribution of the maximum statistic for post-selection inference <span class="citation" data-cites="Girardi2024-ip">(<a href="#ref-Girardi2024-ip" role="doc-biblioref">Girardi et al., 2024</a>)</span>.</p>
+<p>Let <span class="math inline">s=1,\ldots,S</span> index the set of meta-analytic specifications. Specifications may differ in inclusion criteria, effect-size metric, moderator coding, heterogeneity estimator, or model structure. For each specification <span class="math inline">s</span>, the null model is fitted and the statistic <span class="math inline">T_s^{(b)}</span> is computed for each flip <span class="math inline">b=1,\ldots,B</span>, with <span class="math inline">b=1</span> denoting the observed data.</p>
+<p>The same sign vector is used across specifications. If a specification contains only a subset of studies or effect sizes, the corresponding flip matrix is obtained by restricting the common sign vector to the units included in that specification. This preserves the dependence induced by shared studies, shared effect sizes, and overlapping analytic choices.</p>
+<p>For each flip <span class="math inline">b</span>, define the maximum statistic across the multiverse as</p>
+<p><span id="eq-max-stat"><span class="math display">
+M^{(b)}
+=
+\max_{s=1,\ldots,S}
+T_s^{(b)}.
+\tag{26}</span></span></p>
+<p>The global multiverse null hypothesis states that the focal parameter is null in all specifications. Its <span class="math inline">p</span> value is</p>
+<p><span id="eq-global-p"><span class="math display">
+p_{\mathrm{global}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}
+\left(
+M^{(b)}
+\geq
+M^{(1)}
+\right)
+}{B}.
+\tag{27}</span></span></p>
+<p>Specification-wise adjusted <span class="math inline">p</span> values are obtained by comparing each observed statistic with the same empirical distribution of maxima:</p>
+<p><span id="eq-adjusted-p"><span class="math display">
+p_{s,\mathrm{adj}}
+=
+\frac{
+\sum_{b=1}^{B}
+\mathbb{I}
+\left(
+M^{(b)}
+\geq
+T_s^{(1)}
+\right)
+}{B}.
+\tag{28}</span></span></p>
+<p>A specification is selected as significant when <span class="math inline">p_{s,\mathrm{adj}}\leq\alpha</span>. Since the reference distribution is based on the maximum statistic across all specifications, the procedure controls the family-wise error rate over the multiverse. This yields the meta-analytic analogue of PIMA: within each specification, inference is based on a sign-flipping effective score test; across specifications, post-selection inference is obtained through the max-<span class="math inline">T</span> distribution.</p>
+</section>
+<section id="simulation-study" class="level1">
+<h1>Simulation study</h1>
+<p>We performed a simulation study to evaluate the inferential performance of the <code>flipmeta</code> methods compared to the wald-type, knapp and ahartung method and the cluster robust method. We did not evaluated the classical permutation-based method based on permuting the rows of the model matrix given the computational time.</p>
+<p>We simulated data following the <span class="citation" data-cites="Viechtbauer2015-tn">Viechtbauer et al. (<a href="#ref-Viechtbauer2015-tn" role="doc-biblioref">2015</a>)</span> approach, according to the mixed-effects meta-regression models and assuming that the <span class="math inline">k</span> studies compared an experimental (E) and control groups (C) on a quantitiative outcome. The groups are sampled by two normal distribution with common variance. Then the effect size <span class="math inline">\theta</span> for the <span class="math inline">i</span>th study is</p>
+<p><span class="math display">
+\theta_i = \frac{\mu_i^E - \mu_i^C}{\sigma_i},
+</span></p>
+<p>where the unbiased estimator <span class="math inline">y_i</span> can be obtained substituting the estimated quantities <span class="math inline">\bar x_i^E</span>, <span class="math inline">\bar x_i^C</span> and <span class="math inline">s_i</span> that is the pooled standard deviation and applying the small sample adjustement as reported in <strong>?@eq-g</strong>.</p>
+<p><span class="math display">
+y_i =
+\left(
+1 - \frac{3}{4\left(n_i^E + n_i^C\right) - 9}.
+\right)d_i
+</span> Where <span class="math inline">d_i = (\bar x_i^E - \bar x_i^C) / s_i</span>. The sampling variance <span class="math inline">v_i</span> can be calculated with</p>
+<p><span class="math display">
+v_i = \frac{1}{n_i^E} + \frac{1}{n_i^C} + \frac{y_i^2}{2 (n_i^E + n_i^C)}.
+</span> The true effects <span class="math inline">\theta_i</span> are expressed as</p>
+<p><span class="math display">
+\boldsymbol{\theta} = \mathbf{X}\boldsymbol{\beta} + \mathbf{u} + \mathbf{Z}\mathbf{\gamma},
+</span> where <span class="math inline">\mathbf{X}\boldsymbol{\beta}</span> is the model matrix and coefficients vector for the focal predictors, <span class="math inline">\mathbf{Z}\mathbf{\gamma}</span> is the model matrix and coefficients vector of the nuiscance covariates and <span class="math inline">\mathbf{u}</span> is the vector of random effects. Under the null hypothesis <span class="math inline">H_0</span>, <span class="math inline">\mathbf{\beta} = 0</span> and under the alterative hypothesis <span class="math inline">H_1</span> each <span class="math inline">\beta = [0.1, 0.3, 0.5]</span> respectively as small, medium and large effects. Under both hypotheses, each <span class="math inline">\gamma = [0.1, 0.3, 0.5]</span>. Focal and nuiscance predictors are sampled from a multivariate normal distribution with unit variance and compound symmetry structure with correlation <span class="math inline">\rho = 0.5</span>. The random effects <span class="math inline">\mathbf{u}</span> were simulated from a normal distribution with <span class="math inline">\tau^2 = [0, 0.01, 0.1, 0.5]</span> covering the equal-effects case when <span class="math inline">\tau^2 = 0</span> and small to large absolute heterogeneity considering the scale of the effect. We simulate meta-analyses with <span class="math inline">k = 10, 20, 40</span> and <span class="math inline">100</span> studies. Finally we simulated sample sizes for each study from a negative binomial distribution setting the mean to <span class="math inline">N = 10, 30, 50, 80</span> where <span class="math inline">N = n^E = n^C</span> and the dispersion parameter as <span class="math inline">N/3</span>. In this way the variance is twice the mean creating a more realistic heterogeneous sample sizes across the <span class="math inline">k</span> studies.</p>
+<!-- scenarios description here -->
+<p>For each of the scenario we simulated 10,000 meta-analyses, fitting the statistical models using <code>metafor</code> <span class="citation" data-cites="metafor">(<a href="#ref-metafor" role="doc-biblioref"><strong>metafor?</strong></a>)</span> and extracting the p values calculated with the Wald, Knapp, robust variance estimator and using the <code>flipmeta</code> approach. We fitted both the equal-effects (ignoring <span class="math inline">\tau^2</span>) and the random-effects model for each scenario. For the <code>flipmeta</code> approach we performed <span class="math inline">B = 5000</span> sign flips in each condition. The number of possible permutations is <span class="math inline">2^k</span> then when <span class="math inline">2^k &lt; B</span> we run all the possible permutations obtaining an exact test with a minimum p value of <span class="math inline">1/2^k</span>. For each scenario we calculated the proportion of rejected null hypotheses estimating the type-1 error rate under <span class="math inline">H_0</span> and the statistical power under <span class="math inline">H_1</span>.</p>
+</section>
+<section id="references" class="level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-Borenstein2009-mo" class="csl-entry" role="listitem">
+Borenstein, M., Hedges, L. V., Higgins, J., &amp; Rothstein, H. (2009). <em><span class="nocase">Introduction to <span class="nocase">meta-analysis</span></span></em>. Wiley-Blackwell. <a href="https://doi.org/10.1002/9780470743386">https://doi.org/10.1002/9780470743386</a>
+</div>
+<div id="ref-De-Santis2025-ej" class="csl-entry" role="listitem">
+De Santis, R., Goeman, J. J., Davenport, S., Hemerik, J., &amp; Finos, L. (2025). <span class="nocase">Permutation-based multiple testing when fitting many generalized linear models</span>. <em>Electronic Journal of Statistics</em>, <em>19</em>, 3317–3332. <a href="https://doi.org/10.1214/25-ejs2409">https://doi.org/10.1214/25-ejs2409</a>
+</div>
+<div id="ref-Eronen2021-fn" class="csl-entry" role="listitem">
+Eronen, M. I., &amp; Bringmann, L. F. (2021). <span class="nocase">The theory crisis in psychology: How to move forward</span>. <em>Perspectives on Psychological Science: A Journal of the Association for Psychological Science</em>, <em>16</em>, 779–788. <a href="https://doi.org/10.1177/1745691620970586">https://doi.org/10.1177/1745691620970586</a>
+</div>
+<div id="ref-Errington2021-fb" class="csl-entry" role="listitem">
+Errington, T. M., Mathur, M., Soderberg, C. K., Denis, A., Perfito, N., Iorns, E., &amp; Nosek, B. A. (2021). <span class="nocase">Investigating the replicability of preclinical cancer biology</span>. <em>eLife</em>, <em>10</em>, e71601. <a href="https://doi.org/10.7554/eLife.71601">https://doi.org/10.7554/eLife.71601</a>
+</div>
+<div id="ref-Flake2020-wz" class="csl-entry" role="listitem">
+Flake, J. K., &amp; Fried, E. I. (2020). <span class="nocase">Measurement schmeasurement: Questionable measurement practices and how to avoid them</span>. <em>Advances in Methods and Practices in Psychological Science</em>, <em>3</em>, 456–465. <a href="https://doi.org/10.1177/2515245920952393">https://doi.org/10.1177/2515245920952393</a>
+</div>
+<div id="ref-Follmann1999-ha" class="csl-entry" role="listitem">
+Follmann, D. A., &amp; Proschan, M. A. (1999). <span class="nocase">Valid inference in random effects meta-analysis</span>. <em>Biometrics</em>, <em>55</em>, 732–737. <a href="https://doi.org/10.1111/j.0006-341x.1999.00732.x">https://doi.org/10.1111/j.0006-341x.1999.00732.x</a>
+</div>
+<div id="ref-Gelman2013-hm" class="csl-entry" role="listitem">
+Gelman, A., &amp; Loken, E. (2013). <em><span class="nocase">The garden of forking paths: Why multiple comparisons can be a problem, even when there is no "fishing expedition" or "p-hacking" and the research hypothesis was posited ahead of time</span></em>. <a href="https://sites.stat.columbia.edu/gelman/research/unpublished/p_hacking.pdf">https://sites.stat.columbia.edu/gelman/research/unpublished/p_hacking.pdf</a>
+</div>
+<div id="ref-Girardi2024-ip" class="csl-entry" role="listitem">
+Girardi, P., Vesely, A., Lakens, D., Altoè, G., Pastore, M., Calcagnì, A., &amp; Finos, L. (2024). <span class="nocase">Post-selection Inference in Multiverse Analysis (PIMA): An inferential framework based on the sign flipping score test</span>. <em>Psychometrika</em>, <em>89</em>, 542–568. <a href="https://doi.org/10.1007/s11336-024-09973-6">https://doi.org/10.1007/s11336-024-09973-6</a>
+</div>
+<div id="ref-Hemerik2020-nq" class="csl-entry" role="listitem">
+Hemerik, J., Goeman, J. J., &amp; Finos, L. (2020). <span class="nocase">Robust testing in generalized linear models by sign flipping score contributions</span>. <em>Journal of the Royal Statistical Society. Series B, Statistical Methodology</em>, <em>82</em>, 841–864. <a href="https://doi.org/10.1111/rssb.12369">https://doi.org/10.1111/rssb.12369</a>
+</div>
+<div id="ref-Nosek2022-ab" class="csl-entry" role="listitem">
+Nosek, B. A., Hardwicke, T. E., Moshontz, H., Allard, A., Corker, K. S., Dreber, A., Fidler, F., Hilgard, J., Kline Struhl, M., Nuijten, M. B., Rohrer, J. M., Romero, F., Scheel, A. M., Scherer, L. D., Schönbrodt, F. D., &amp; Vazire, S. (2022). <span class="nocase">Replicability, robustness, and reproducibility in psychological science</span>. <em>Annual Review of Psychology</em>, <em>73</em>, 719–748. <a href="https://doi.org/10.1146/annurev-psych-020821-114157">https://doi.org/10.1146/annurev-psych-020821-114157</a>
+</div>
+<div id="ref-Oberauer2019-xv" class="csl-entry" role="listitem">
+Oberauer, K., &amp; Lewandowsky, S. (2019). <span class="nocase">Addressing the theory crisis in psychology</span>. <em>Psychonomic Bulletin &amp; Review</em>, <em>26</em>, 1596–1618. <a href="https://doi.org/10.3758/s13423-019-01645-2">https://doi.org/10.3758/s13423-019-01645-2</a>
+</div>
+<div id="ref-Open-Science-Collaboration2015-al" class="csl-entry" role="listitem">
+Open Science Collaboration. (2015). <span class="nocase">PSYCHOLOGY. Estimating the reproducibility of psychological science</span>. <em>Science (New York, N.Y.)</em>, <em>349</em>, aac4716. <a href="https://doi.org/10.1126/science.aac4716">https://doi.org/10.1126/science.aac4716</a>
+</div>
+<div id="ref-Patel2015-pn" class="csl-entry" role="listitem">
+Patel, C. J., Burford, B., &amp; Ioannidis, J. P. A. (2015). <span class="nocase">Assessment of vibration of effects due to model specification can demonstrate the instability of observational associations</span>. <em>Journal of Clinical Epidemiology</em>, <em>68</em>, 1046–1058. <a href="https://doi.org/10.1016/j.jclinepi.2015.05.029">https://doi.org/10.1016/j.jclinepi.2015.05.029</a>
+</div>
+<div id="ref-Pietschnig2022-mg" class="csl-entry" role="listitem">
+Pietschnig, J., Gerdesmann, D., Zeiler, M., &amp; Voracek, M. (2022). <span class="nocase">Of differing methods, disputed estimates and discordant interpretations: the meta-analytical multiverse of brain volume and IQ associations</span>. <em>Royal Society Open Science</em>, <em>9</em>, 211621. <a href="https://doi.org/10.1098/rsos.211621">https://doi.org/10.1098/rsos.211621</a>
+</div>
+<div id="ref-Plessen2023-ex" class="csl-entry" role="listitem">
+Plessen, C. Y., Karyotaki, E., Miguel, C., Ciharova, M., &amp; Cuijpers, P. (2023). <span class="nocase">Exploring the efficacy of psychotherapies for depression: a multiverse meta-analysis</span>. <em>BMJ Mental Health</em>, <em>26</em>, e300626. <a href="https://doi.org/10.1136/bmjment-2022-300626">https://doi.org/10.1136/bmjment-2022-300626</a>
+</div>
+<div id="ref-Silberzahn2018-yu" class="csl-entry" role="listitem">
+Silberzahn, R., Uhlmann, E. L., Martin, D. P., Anselmi, P., Aust, F., Awtrey, E., Bahník, Š., Bai, F., Bannard, C., Bonnier, E., Carlsson, R., Cheung, F., Christensen, G., Clay, R., Craig, M. A., Dalla Rosa, A., Dam, L., Evans, M. H., Flores Cervantes, I., … Nosek, B. A. (2018). <span class="nocase">Many analysts, one data set: Making transparent how variations in analytic choices affect results</span>. <em>Advances in Methods and Practices in Psychological Science</em>, <em>1</em>, 337–356. <a href="https://doi.org/10.1177/2515245917747646">https://doi.org/10.1177/2515245917747646</a>
+</div>
+<div id="ref-Simmons2011-ne" class="csl-entry" role="listitem">
+Simmons, J. P., Nelson, L. D., &amp; Simonsohn, U. (2011). <span class="nocase">False-positive psychology: undisclosed flexibility in data collection and analysis allows presenting anything as significant: Undisclosed flexibility in data collection and analysis allows presenting anything as significant</span>. <em>Psychological Science</em>, <em>22</em>, 1359–1366. <a href="https://doi.org/10.1177/0956797611417632">https://doi.org/10.1177/0956797611417632</a>
+</div>
+<div id="ref-Simonsohn2020-sr" class="csl-entry" role="listitem">
+Simonsohn, U., Simmons, J. P., &amp; Nelson, L. D. (2020). <span class="nocase">Specification curve analysis</span>. <em>Nature Human Behaviour</em>, <em>4</em>, 1208–1214. <a href="https://doi.org/10.1038/s41562-020-0912-z">https://doi.org/10.1038/s41562-020-0912-z</a>
+</div>
+<div id="ref-Steegen2016-gx" class="csl-entry" role="listitem">
+Steegen, S., Tuerlinckx, F., Gelman, A., &amp; Vanpaemel, W. (2016). <span class="nocase">Increasing transparency through a multiverse analysis</span>. <em>Perspectives on Psychological Science: A Journal of the Association for Psychological Science</em>, <em>11</em>, 702–712. <a href="https://doi.org/10.1177/1745691616658637">https://doi.org/10.1177/1745691616658637</a>
+</div>
+<div id="ref-Viechtbauer2015-tn" class="csl-entry" role="listitem">
+Viechtbauer, W., López-López, J. A., Sánchez-Meca, J., &amp; Marín-Martínez, F. (2015). <span class="nocase">A comparison of procedures to test for moderators in mixed-effects meta-regression models</span>. <em>Psychological Methods</em>, <em>20</em>, 360–374. <a href="https://doi.org/10.1037/met0000023">https://doi.org/10.1037/met0000023</a>
+</div>
+<div id="ref-Wicherts2016-cz" class="csl-entry" role="listitem">
+Wicherts, J. M., Veldkamp, C. L. S., Augusteijn, H. E. M., Bakker, M., Aert, R. C. M. van, &amp; Assen, M. A. L. M. van. (2016). <span class="nocase">Degrees of freedom in planning, running, analyzing, and reporting psychological studies: A checklist to avoid p-hacking</span>. <em>Frontiers in Psychology</em>, <em>7</em>, 1832. <a href="https://doi.org/10.3389/fpsyg.2016.01832">https://doi.org/10.3389/fpsyg.2016.01832</a>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

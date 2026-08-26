@@ -9,9 +9,10 @@ flipmeta(
   B = 5000,
   flips = NULL,
   tested_coeffs = NULL,
-  interval = c(0, 1000),
+  method = NULL,
   progress = TRUE,
-  tol = .Machine$double.eps^0.25
+  tol = .Machine$double.eps^0.25,
+  control = list()
 )
 }
 \arguments{
@@ -23,9 +24,17 @@ flipmeta(
 
 \item{tested_coeffs}{Optional character vector of coefficients to test.}
 
-\item{interval}{Interval for numerical estimation of tau^2 under H0 when needed.}
+\item{method}{Optional heterogeneity estimator. One of \code{"REML"}, \code{"ML"},
+\code{"DL"}, or \code{"EE"}. If \code{NULL}, the method stored in \code{fit} is used. \code{"EE"}
+fits an equal-effects model with tau^2 fixed at 0.}
+
+\item{progress}{Logical indicating whether to show progress for lists of models.}
 
 \item{tol}{Numerical tolerance.}
+
+\item{control}{Optional list of numerical controls. Currently supports
+\code{tau2_interval}, a finite length-two numeric vector used as the search
+interval for tau^2 under the null.}
 }
 \description{
 Flipmeta score sign-flipping tests for metafor models
