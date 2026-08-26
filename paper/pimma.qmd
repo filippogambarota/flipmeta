@@ -47,10 +47,10 @@ library(tidyr)
 library(patchwork)
 
 knitr::opts_chunk$set(
-    warning = FALSE,
-    echo = FALSE,
-    message = FALSE,
-    fig.align = "center"
+  warning = FALSE,
+  echo = FALSE,
+  message = FALSE,
+  fig.align = "center"
 )
 
 sim <- readRDS(here::here("simulation/res.rds"))
@@ -592,37 +592,37 @@ For each combination of simulation parameters, the resulting effect-size estimat
 #| fig-width: 10
 
 type1 <- sim |>
-    filter(coef == "x1" & bX == 0) |>
-    pivot_longer(starts_with("pval")) |>
-    select(bX, tau2, k, n, method, name, value) |>
-    group_by(bX, tau2, k, method, name) |>
-    summarise(p = mean(value <= 0.05)) |>
-    ggplot(aes(x = k, y = p, color = name)) +
-    geom_hline(yintercept = filor::se_p(0.05, 500)$ci, lty = "dotted") +
-    geom_point() +
-    geom_line() +
-    facet_grid(tau2 ~ method) +
-    theme_minimal(20) +
-    ylab("Type-1 Error") +
-    theme(legend.position = "bottom")
+  filter(coef == "x1" & bX == 0) |>
+  pivot_longer(starts_with("pval")) |>
+  select(bX, tau2, k, n, method, name, value) |>
+  group_by(bX, tau2, k, method, name) |>
+  summarise(p = mean(value <= 0.05)) |>
+  ggplot(aes(x = k, y = p, color = name)) +
+  geom_hline(yintercept = filor::se_p(0.05, 500)$ci, lty = "dotted") +
+  geom_point() +
+  geom_line() +
+  facet_grid(tau2 ~ method) +
+  theme_minimal(20) +
+  ylab("Type-1 Error") +
+  theme(legend.position = "bottom")
 
 power <- sim |>
-    filter(coef == "x1" & bX != 0) |>
-    pivot_longer(starts_with("pval")) |>
-    select(bX, tau2, k, n, method, name, value) |>
-    group_by(bX, tau2, k, method, name) |>
-    summarise(p = mean(value <= 0.05)) |>
-    ggplot(aes(x = k, y = p, color = name)) +
-    geom_point() +
-    geom_line() +
-    facet_grid(tau2 ~ method) +
-    theme_minimal(20) +
-    ylab("Power") +
-    theme(legend.position = "bottom")
+  filter(coef == "x1" & bX != 0) |>
+  pivot_longer(starts_with("pval")) |>
+  select(bX, tau2, k, n, method, name, value) |>
+  group_by(bX, tau2, k, method, name) |>
+  summarise(p = mean(value <= 0.05)) |>
+  ggplot(aes(x = k, y = p, color = name)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(tau2 ~ method) +
+  theme_minimal(20) +
+  ylab("Power") +
+  theme(legend.position = "bottom")
 
 (type1 / power) +
-    plot_layout(guides = "collect", axes = "collect") &
-    theme(legend.position = "bottom")
+  plot_layout(guides = "collect", axes = "collect") &
+  theme(legend.position = "bottom")
 ```
 
 
@@ -630,6 +630,18 @@ power <- sim |>
 # Application to the @Pietschnig2022-mg dataset
 
 Description and results
+
+# Discussion
+
+# Conclusion
+
+# Limitations and future perspectives
+
+<!-- TODO magari inserire un cenno ai test multivariati con più parametri tipo malanohbis che de santis comunque cita, per non appesantire li ho tolti -->
+
+The present work has some limitations mainly related to the extension of the `flipscores` method to the meta-analysis model. The main problem is about assuming that the meta-analytic dataset has $k$ independent studies contributing with a single effect size (i.e., a two-level model). In practice, most of the time there is dependency among observed effects due to multilevel and/or multivariate data structure [@Van-den-Noortgate2013-lu; @Cheung2013-hw]. Some recent works extended the flipscores approach to mixed-effects models with nested and crossed random-effects [@Andreella2025-nd ; @Vesely2026-zj] developing an appropriate permutation approach considering the dependency of observations. We are working on the implementation of this approach also for complex meta-analitic data structure.
+
+<!-- TODO magari fare un cenno a come sarebbe l'implementazione, tipo che tau2_1 e tau2_2 nel caso di un three level model diventano due nuisance parameters -->
 
 # References
 
