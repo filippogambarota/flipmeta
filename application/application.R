@@ -68,6 +68,21 @@ for (i in 1:nrow(multi)) {
 }
 
 res <- flipmeta(fitl, tested_coeffs = "intrcpt", extra = multi)
+
+p.adjust(res)
+
+
+res2 <- res
+
+dim(res2$Tspace)
+res2$summary_table <- res2$summary_table[1:10, ]
+res2$Tspace <- res2$Tspace[, 1:10]
+
+p.adjust(res2)
+
+combine_tests(res2)
+
+
 res <- p.adjust(res, method = "maxT")
 
 multi <- res$summary_table
