@@ -10,6 +10,7 @@ flipmeta(
   flips = NULL,
   tested_coeffs = NULL,
   method = NULL,
+  extra = NULL,
   progress = TRUE,
   tol = .Machine$double.eps^0.25,
   control = list()
@@ -27,6 +28,9 @@ flipmeta(
 \item{method}{Optional heterogeneity estimator. One of \code{"REML"}, \code{"ML"},
 \code{"DL"}, or \code{"EE"}. If \code{NULL}, the method stored in \code{fit} is used. \code{"EE"}
 fits an equal-effects model with tau^2 fixed at 0.}
+
+\item{extra}{Optional data frame of model-level variables added to the
+\code{summary_table} when \code{fit} is a list of models.}
 
 \item{progress}{Logical indicating whether to show progress for lists of models.}
 

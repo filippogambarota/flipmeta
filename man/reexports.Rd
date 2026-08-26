@@ -5,7 +5,6 @@
 \alias{reexports}
 \alias{combine_tests}
 \alias{combine_contrasts}
-\alias{p.adjust}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -13,6 +12,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{flipscores}{\code{\link[flipscores:combine_contrasts]{combine_contrasts()}}, \code{\link[flipscores:combine_tests]{combine_tests()}}, \code{\link[flipscores:p.adjust]{p.adjust()}}}
+  \item{flipscores}{\code{\link[flipscores:combine_contrasts]{combine_contrasts()}}, \code{\link[flipscores:combine_tests]{combine_tests()}}}
 }}
 

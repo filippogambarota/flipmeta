@@ -7,6 +7,8 @@
 #' @param method Optional heterogeneity estimator. One of `"REML"`, `"ML"`,
 #'   `"DL"`, or `"EE"`. If `NULL`, the method stored in `fit` is used. `"EE"`
 #'   fits an equal-effects model with tau^2 fixed at 0.
+#' @param extra Optional data frame of model-level variables added to the
+#'   `summary_table` when `fit` is a list of models.
 #' @param progress Logical indicating whether to show progress for lists of models.
 #' @param tol Numerical tolerance.
 #' @param control Optional list of numerical controls. Currently supports
