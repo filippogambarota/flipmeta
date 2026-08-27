@@ -43,3 +43,17 @@ interval for tau^2 under the null.}
 \description{
 Flipmeta score sign-flipping tests for metafor models
 }
+\details{
+When several models are supplied, sign-flip columns are aligned using
+observation labels recovered from each \code{rma.uni} fit. User-supplied
+\code{slab} labels are preferred, followed by non-default row names and the
+original row positions stored in \code{fit$ids}. If no stable labels are
+available, the function falls back to local row positions.
+
+For specifications obtained by selecting studies from a common master data
+set, use \code{metafor::rma.uni(..., subset = selection)} rather than passing an
+already filtered object through \code{data = data[selection, ]}. The former
+preserves the original row positions in \code{fit$ids}. When specifications may
+be reordered or are built from separately filtered data, provide stable
+study labels to \code{rma.uni()} with \code{slab = study_id}.
+}
