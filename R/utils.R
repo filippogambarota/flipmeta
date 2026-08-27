@@ -99,15 +99,13 @@
         stop("ncol(flips) must equal length(nu).")
     }
 
+    sqrt_w <- sqrt(w_vec)
+
     if (ncol(Z_mat) == 0L) {
 
         P <- diag(k)
 
-        px <- x_vec
-
     } else {
-
-        sqrt_w <- sqrt(w_vec)
 
         Zw <- Z_mat * sqrt_w
 
@@ -116,9 +114,9 @@
         Q <- qr.Q(qr_Zw)
 
         P <- diag(k) - tcrossprod(Q)
-
-        px <- as.numeric(P %*% (x_vec * sqrt_w))
     }
+
+    px <- as.numeric(P %*% (x_vec * sqrt_w))
 
     S <- drop(flips %*% nu_vec)
 
