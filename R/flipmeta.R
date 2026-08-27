@@ -3,6 +3,19 @@
 #' @param fit An object of class `"rma"` from `metafor::rma.uni()`, or a list of such objects.
 #' @param B Number of sign-flips.
 #' @param flips Optional matrix of precomputed flips.
+#' @details
+#' When several models are supplied, sign-flip columns are aligned using
+#' observation labels recovered from each `rma.uni` fit. User-supplied
+#' `slab` labels are preferred, followed by non-default row names and the
+#' original row positions stored in `fit$ids`. If no stable labels are
+#' available, the function falls back to local row positions.
+#'
+#' For specifications obtained by selecting studies from a common master data
+#' set, use `metafor::rma.uni(..., subset = selection)` rather than passing an
+#' already filtered object through `data = data[selection, ]`. The former
+#' preserves the original row positions in `fit$ids`. When specifications may
+#' be reordered or are built from separately filtered data, provide stable
+#' study labels to `rma.uni()` with `slab = study_id`.
 #' @param tested_coeffs Optional character vector of coefficients to test.
 #' @param method Optional heterogeneity estimator. One of `"REML"`, `"ML"`,
 #'   `"DL"`, or `"EE"`. If `NULL`, the method stored in `fit` is used. `"EE"`
@@ -92,11 +105,10 @@ flipmeta <- function(
     mods <- fit$formula.mods
     data <- fit$data
 
-    if (is.null(rownames(X))) {
-        rownames(X) <- seq_len(nrow(X))
-    }
-
     k <- nrow(X)
+
+    obs_names <- .flipmeta_obs_names(fit)
+    rownames(X) <- obs_names
 
     coef_names <- colnames(X)
 
@@ -129,7 +141,7 @@ flipmeta <- function(
     B_eff <- nrow(flips_all)
     kall <- ncol(flips_all)
 
-    rows <- as.character(rownames(X))
+    rows <- obs_names
 
     if (is.null(colnames(flips_all))) {
         if (kall != k) {
@@ -353,14 +365,58 @@ flipmeta <- function(
 
 .flipmeta_obs_names <- function(fit) {
     X <- as.matrix(fit$X)
+    k <- nrow(X)
+    default_names <- as.character(seq_len(k))
+
+    # `slab` is metafor's study-label field. Prefer non-default labels
+    # because they remain stable when specifications are reordered or
+    # filtered before fitting.
+    slab <- fit$slab
+
+    if (!is.null(slab) && length(slab) == k) {
+        slab <- as.character(slab)
+
+        if (!anyNA(slab) && !identical(slab, default_names)) {
+            if (anyDuplicated(slab)) {
+                stop("'fit$slab' must contain unique study labels.")
+            }
+
+            return(slab)
+        }
+    }
 
     rn <- rownames(X)
 
-    if (is.null(rn)) {
-        rn <- seq_len(nrow(X))
+    if (!is.null(rn) && length(rn) == k) {
+        rn <- as.character(rn)
+
+        if (!anyNA(rn) && !identical(rn, default_names)) {
+            if (anyDuplicated(rn)) {
+                stop("'rownames(fit$X)' must contain unique observation labels.")
+            }
+
+            return(rn)
+        }
     }
 
-    as.character(rn)
+    # metafor preserves original row positions in `ids` when its `subset`
+    # argument is used. These positions are useful for models derived from a
+    # common master data set.
+    ids <- fit$ids
+
+    if (!is.null(ids) && length(ids) == k) {
+        ids <- as.character(ids)
+
+        if (!anyNA(ids)) {
+            if (anyDuplicated(ids)) {
+                stop("'fit$ids' must contain unique observation identifiers.")
+            }
+
+            return(ids)
+        }
+    }
+
+    default_names
 }
 
 .flipmeta_coef_names <- function(fit) {
