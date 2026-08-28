@@ -14,6 +14,7 @@ options(
 )
 
 dat <- readxl::read_xlsx("application/data_BrainVolIQ.xlsx")
+
 dat <- filter(dat, IQdomain == "FSIQ")
 dat$gness <- case_when(
   dat$RatinG %in% c(2, 3) ~ "fair/good",
@@ -41,6 +42,8 @@ multi$mods <- ifelse(
 
 multi_vars <- names(multi)
 multi_vars <- multi_vars[!multi_vars %in% c("mods")]
+idx <- sample(1:nrow(multi), 100)
+multi <- multi[idx, ]
 
 fitl <- vector(mode = "list", length = nrow(multi))
 
@@ -50,8 +53,11 @@ for (i in 1:nrow(multi)) {
   if (!any(names(cond_i) %in% names(dat))) {
     dat_i <- dat
   } else {
-    dat_i <- semi_join(dat, cond_i)
+    dat_i <- semi_join(dat, cond_i, )
   }
+
+  dat_i <- as.data.frame(dat_i)
+
   yi <- dat_i[[cond_i$es]]
   vi <- dat_i[[paste0(cond_i$es, "_var")]]
   sei <- sqrt(vi)
@@ -67,70 +73,10 @@ for (i in 1:nrow(multi)) {
   )
 }
 
-res <- flipmeta(fitl, tested_coeffs = "intrcpt", extra = multi)
+res <- flipmeta(fitl, id = "EffectSizeID", extra = multi)
+res <- p.adjust(res)
 
-p.adjust(res)
-
-
-res2 <- res
-
-dim(res2$Tspace)
-res2$summary_table <- res2$summary_table[1:10, ]
-res2$Tspace <- res2$Tspace[, 1:10]
-
-p.adjust(res2)
-
-combine_tests(res2)
+plot(res, adjusted = TRUE)
+spec_curve(res)
 
 
-res <- p.adjust(res, method = "maxT")
-
-multi <- res$summary_table
-
-multi <- multi |>
-  mutate(
-    sign = case_when(
-      p <= 0.05 & p.adj <= 0.05 ~ "after",
-      p <= 0.05 & p.adj > 0.05 ~ "before",
-      p > 0.05 ~ "never",
-      TRUE ~ NA
-    )
-  ) |>
-  arrange(estimate) |>
-  mutate(id = row_number())
-
-
-spec_curve <- function(data, vars) {
-  up <- ggplot(data, aes(x = id, y = estimate, color = sign)) +
-    geom_point(alpha = 0.5) +
-    theme(
-      axis.title.x = element_blank(),
-      axis.text.x = element_blank(),
-      axis.ticks.x = element_blank(),
-      legend.position = "bottom"
-    )
-
-  down <- data |>
-    pivot_longer(all_of(vars)) |>
-    ggplot(aes(x = id, y = value, color = sign)) +
-    facet_grid(name ~ ., drop = TRUE, scales = "free_y") +
-    geom_point(alpha = 0.5) +
-    theme(axis.title.y = element_blank(), legend.position = "bottom")
-
-  up /
-    down +
-    plot_layout(heights = c(0.3, 0.7), guides = "collect", axes = "collect") &
-    theme(legend.position = "bottom")
-}
-
-multi |>
-  filter(Bias == "no") |>
-summarise(mean(p <= 0.05))
-
-multi <- filor:::capply(multi, is.character, factor)
-fit <- lm(
-  estimate ~ AgeCat + SampleType + gness + es + method + Bias,
-  data = multi
-)
-car::Anova(fit) |>
-  effectsize::eta_squared()

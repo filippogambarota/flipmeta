@@ -11,3 +11,18 @@
 }
 
 \end{figure*}
+\efloatseparator
+ 
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+\caption{\label{fig-holm-vs-maxt}Holm vs maxT}
+
+\centering{
+
+\pandocbounded{\includegraphics[keepaspectratio]{pimma_files/figure-pdf/fig-holm-vs-maxt-1.pdf}}
+
+}
+
+\end{figure*}

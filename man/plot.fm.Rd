@@ -9,9 +9,10 @@
   x,
   xvar = "estimate",
   color = "coefficient",
+  coef = NULL,
   base_size = 15,
-  adjusted = NULL,
-  transf.p = NULL,
+  adjusted = TRUE,
+  transf.p = "raw",
   ...
 )
 
@@ -19,9 +20,10 @@
   x,
   xvar = "estimate",
   color = "coefficient",
+  coef = NULL,
   base_size = 15,
-  adjusted = NULL,
-  transf.p = NULL,
+  adjusted = TRUE,
+  transf.p = "raw",
   ...
 )
 }

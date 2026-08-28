@@ -2,3 +2,5 @@
 ^\.Rproj\.user$
 ^testing.R$
 ^paper$
+^application$
+^simulation$
