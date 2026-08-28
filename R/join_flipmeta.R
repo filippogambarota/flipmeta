@@ -100,20 +100,22 @@
 
     rownames(summary_table) <- NULL
 
-    # TODO check the model names and put in a robust way
-
     if (!is.null(extra)) {
-        extra$model <- names(objects)[seq_len(nrow(extra))]
+        if (!is.data.frame(extra) || nrow(extra) != length(objects)) {
+            stop(
+                "'extra' must be a data frame with exactly one row per model.",
+                call. = FALSE
+            )
+        }
+        if ("model" %in% names(extra)) {
+            stop("Column name 'model' is reserved and cannot be used in 'extra'.", call. = FALSE)
+        }
 
-        .row_order <- seq_len(nrow(summary_table))
-        summary_table <- merge(
+        model_rows <- match(summary_table$model, names(objects))
+        summary_table <- cbind(
             summary_table,
-            extra,
-            by = "model",
-            all.x = TRUE,
-            sort = FALSE
+            extra[model_rows, , drop = FALSE]
         )
-        summary_table <- summary_table[order(.row_order), , drop = FALSE]
         rownames(summary_table) <- NULL
     }
 

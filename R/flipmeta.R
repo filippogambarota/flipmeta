@@ -5,8 +5,13 @@
 #'   model's `fit$data`. It is required when `fit` is a list and ignored for a
 #'   single model. For model lists, the column must be present and contain
 #'   unique, non-missing identifiers in every model.
-#' @param B Number of sign-flips.
-#' @param flips Optional matrix of precomputed flips.
+#' @param B Positive integer giving the number of sign flips. When `flips` is
+#'   supplied, `B` is ignored and the effective number of flips is
+#'   `nrow(flips)`.
+#' @param flips Optional numeric matrix of precomputed flips containing only
+#'   `-1` and `1`. Its first row must contain only `1`, representing the
+#'   observed statistic. For a list of models, column names are required and
+#'   must be unique observation identifiers.
 #' @details
 #' When several models are supplied, sign-flip columns are aligned using the
 #' column named by `id`. This column should be created once in the complete
@@ -28,7 +33,7 @@
 #' @param extra Optional data frame of model-level variables added to the
 #'   `summary_table` when `fit` is a list of models.
 #' @param progress Logical indicating whether to show progress for lists of models.
-#' @param tol Numerical tolerance.
+#' @param tol Positive finite numerical tolerance.
 #' @param control Optional list of numerical controls. Currently supports
 #'   `tau2_interval`, a finite length-two numeric vector used as the search
 #'   interval for tau^2 under the null.
@@ -46,6 +51,13 @@ flipmeta <- function(
     control = list(),
     id = NULL
 ) {
+    tol <- .validate_positive_scalar(tol, "tol")
+    if (is.null(flips)) {
+        B <- .validate_positive_integer(B, "B")
+    } else {
+        flips <- .validate_flips(flips)
+    }
+
     control_values <- .flipmeta_control(control)
     method <- .flipmeta_match_method(method)
 
@@ -349,6 +361,55 @@ flipmeta <- function(
 
     control_values$tau2_interval <- as.numeric(tau2_interval)
     control_values
+}
+
+.validate_positive_integer <- function(x, name) {
+    if (
+        !is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) ||
+        x < 1 || x != floor(x)
+    ) {
+        stop("'", name, "' must be a positive integer.", call. = FALSE)
+    }
+
+    as.integer(x)
+}
+
+.validate_positive_scalar <- function(x, name) {
+    if (
+        !is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) ||
+        x <= 0
+    ) {
+        stop("'", name, "' must be a positive finite number.", call. = FALSE)
+    }
+
+    as.numeric(x)
+}
+
+.validate_flips <- function(flips) {
+    if (
+        !is.matrix(flips) || !is.numeric(flips) ||
+        nrow(flips) < 1L || ncol(flips) < 1L ||
+        anyNA(flips) || !all(is.finite(flips))
+    ) {
+        stop("'flips' must be a non-empty finite numeric matrix.", call. = FALSE)
+    }
+
+    if (!all(flips %in% c(-1, 1))) {
+        stop("'flips' must contain only -1 and 1.", call. = FALSE)
+    }
+
+    if (!all(flips[1L, ] == 1)) {
+        stop("The first row of 'flips' must contain only 1.", call. = FALSE)
+    }
+
+    flip_names <- colnames(flips)
+    if (!is.null(flip_names) && (
+        anyNA(flip_names) || any(!nzchar(flip_names)) || anyDuplicated(flip_names)
+    )) {
+        stop("Column names of 'flips' must be unique and non-missing.", call. = FALSE)
+    }
+
+    flips
 }
 
 .flipmeta_match_method <- function(method = NULL) {

@@ -20,9 +20,14 @@ flipmeta(
 \arguments{
 \item{fit}{An object of class \code{"rma"} from \code{metafor::rma.uni()}, or a list of such objects.}
 
-\item{B}{Number of sign-flips.}
+\item{B}{Positive integer giving the number of sign flips. When \code{flips} is
+supplied, \code{B} is ignored and the effective number of flips is
+\code{nrow(flips)}.}
 
-\item{flips}{Optional matrix of precomputed flips.}
+\item{flips}{Optional numeric matrix of precomputed flips containing only
+\code{-1} and \code{1}. Its first row must contain only \code{1}, representing the
+observed statistic. For a list of models, column names are required and
+must be unique observation identifiers.}
 
 \item{tested_coeffs}{Coefficients to test. For a single model, a character
 vector. For a list of models, either a character vector applied to every
@@ -38,7 +43,7 @@ fits an equal-effects model with tau^2 fixed at 0.}
 
 \item{progress}{Logical indicating whether to show progress for lists of models.}
 
-\item{tol}{Numerical tolerance.}
+\item{tol}{Positive finite numerical tolerance.}
 
 \item{control}{Optional list of numerical controls. Currently supports
 \code{tau2_interval}, a finite length-two numeric vector used as the search
