@@ -162,15 +162,23 @@ summary.fml <- function(object, digits = 4, max_rows = 20, ...) {
 plot.fm <- function(x,
                     xvar = "estimate",
                     color = "coefficient",
+                    coef = NULL,
                     base_size = 15,
-                    adjusted = NULL,
-                    transf.p = NULL,
+                    adjusted = TRUE,
+                    transf.p = "raw",
                     ...) {
     data <- x$summary_table
     xvar <- .check_col(data, xvar)
     color <- .check_col(data, color)
     base_size <- .validate_positive_scalar(base_size, "base_size")
     adjusted <- .validate_optional_flag(adjusted, "adjusted")
+
+    if(!is.null(coef)){
+        if(!any(coef %in% data$coefficient)){
+            stop(sprintf("%s not found in the coefficient column!", coef))
+        }
+        data <- data[data$coefficient %in% coef, ]
+    }
 
     if (is.null(adjusted)) {
         adjusted <- "p.adj" %in% names(data)
@@ -184,25 +192,16 @@ plot.fm <- function(x,
         )
     }
 
-    y_label <- yvar
+    data[[yvar]] <- transf_p(data[[yvar]], transf.p)
 
-    if (!is.null(transf.p)) {
-        if (!is.function(transf.p)) {
-            stop("'transf.p' must be a function.", call. = FALSE)
-        }
-
-        transformed <- transf.p(data[[yvar]])
-        if (!is.numeric(transformed) || length(transformed) != nrow(data)) {
-            stop(
-                "'transf.p' must return one numeric value per result row.",
-                call. = FALSE
-            )
-        }
-
-        data$.plot_y <- transformed
-        yvar <- ".plot_y"
-        y_label <- paste0("transf.p(", y_label, ")")
+    transf.p.lbl <- if (is.character(transf.p)) {
+        transf.p
+    } else if (is.function(transf.p)) {
+        paste(deparse(body(transf.p)), collapse = "")
     }
+
+    #transf.p.lbl <- if(is.function(transf.p)) "custom" else transf.p
+    ylab <- sprintf("%s (%s)", yvar, transf.p.lbl)
 
     ggplot2::ggplot(
         data = data,
@@ -214,7 +213,7 @@ plot.fm <- function(x,
     ) +
         ggplot2::geom_point(...) +
         ggplot2::theme_bw(base_size = base_size) +
-        ggplot2::labs(y = y_label)
+        ggplot2::labs(y = ylab)
 }
 
 #' @rdname plot.fm
@@ -222,14 +221,16 @@ plot.fm <- function(x,
 plot.fml <- function(x,
                      xvar = "estimate",
                      color = "coefficient",
+                     coef = NULL,
                      base_size = 15,
-                     adjusted = NULL,
-                     transf.p = NULL,
+                     adjusted = TRUE,
+                     transf.p = "raw",
                      ...) {
     plot.fm(
         x = x,
         xvar = xvar,
         color = color,
+        coef = coef,
         base_size = base_size,
         adjusted = adjusted,
         transf.p = transf.p,
