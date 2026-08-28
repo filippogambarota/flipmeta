@@ -38,6 +38,58 @@
 #'   `tau2_interval`, a finite length-two numeric vector used as the search
 #'   interval for tau^2 under the null.
 #'
+#' @return
+#' For a single fitted model, an object of class `"fm"`. Its main components
+#' are:
+#'
+#' - `summary_table`: one row per tested coefficient, containing the model
+#'   estimate, observed flip statistic, score statistic and raw p-value;
+#' - `Tspace`: a data frame with one row per sign flip and one column per
+#'   tested coefficient. The first row contains the observed statistics;
+#' - `scores`: a numeric matrix of observation-level score contributions, with
+#'   observations in rows and tested coefficients in columns;
+#' - `flips`: the sign-flip matrix used in the analysis;
+#' - `null_fits`: the fitted null model for each tested coefficient;
+#' - `rma`: the original or refitted `metafor` model.
+#'
+#' For a list of fitted models, an object of classes `c("fml", "fm")`. Its
+#' `summary_table` and `Tspace` combine results across models, `objects` contains
+#' the individual `"fm"` objects, and `flips` is the common sign-flip matrix.
+#' Within every element of `objects`, the rows of `scores` represent the same
+#' common universe of identifiers and are ordered as `colnames(flips)`.
+#' Observations absent from a particular model have score contribution zero.
+#'
+#' @examples
+#' dat <- data.frame(
+#'     study_id = paste0("study", 1:8),
+#'     yi = c(0.10, 0.35, -0.05, 0.42, 0.18, 0.51, 0.07, 0.29),
+#'     vi = c(0.04, 0.06, 0.05, 0.08, 0.04, 0.07, 0.05, 0.06),
+#'     dose = c(0, 1, 0, 1, 0, 1, 0, 1)
+#' )
+#'
+#' fit <- metafor::rma.uni(yi, vi, mods = ~ dose, data = dat)
+#' result <- flipmeta(fit, B = 99, tested_coeffs = "dose")
+#' result$summary_table
+#'
+#' fits <- list(
+#'     all_studies = fit,
+#'     selected = metafor::rma.uni(
+#'         yi,
+#'         vi,
+#'         mods = ~ dose,
+#'         data = dat[dat$study_id != "study3", ]
+#'     )
+#' )
+#' joined <- flipmeta(
+#'     fits,
+#'     B = 99,
+#'     tested_coeffs = "dose",
+#'     id = "study_id",
+#'     progress = FALSE
+#' )
+#' joined$summary_table
+#' joined$objects$selected$scores["study3", ]
+#'
 #' @export
 flipmeta <- function(
     fit,
