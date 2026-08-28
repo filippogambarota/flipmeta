@@ -1,4 +1,5 @@
 .join_flipmeta <- function(fits,
+                           id = NULL,
                            B = 5000,
                            flips = NULL,
                            tested_coeffs = NULL,
@@ -23,7 +24,7 @@
         tested_coeffs = tested_coeffs
     )
 
-    obs_names <- unique(unlist(lapply(fits_named, .flipmeta_obs_names)))
+    obs_names <- unique(unlist(lapply(fits_named, .flipmeta_obs_names, id = id)))
 
     if (is.null(flips)) {
 
@@ -61,6 +62,7 @@
 
         objects[[i]] <- .flipmeta_single(
             fit = fits_named[[i]],
+            id = id,
             B = B_eff,
             flips = flips_all,
             tested_coeffs = tested_list[[i]],

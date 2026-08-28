@@ -13,7 +13,8 @@ flipmeta(
   extra = NULL,
   progress = TRUE,
   tol = .Machine$double.eps^0.25,
-  control = list()
+  control = list(),
+  id = NULL
 )
 }
 \arguments{
@@ -39,21 +40,24 @@ fits an equal-effects model with tau^2 fixed at 0.}
 \item{control}{Optional list of numerical controls. Currently supports
 \code{tau2_interval}, a finite length-two numeric vector used as the search
 interval for tau^2 under the null.}
+
+\item{id}{Character scalar naming the observation identifier column in each
+model's \code{fit$data}. It is required when \code{fit} is a list and ignored for a
+single model. For model lists, the column must be present and contain
+unique, non-missing identifiers in every model.}
 }
 \description{
 Flipmeta score sign-flipping tests for metafor models
 }
 \details{
-When several models are supplied, sign-flip columns are aligned using
-observation labels recovered from each \code{rma.uni} fit. User-supplied
-\code{slab} labels are preferred, followed by non-default row names and the
-original row positions stored in \code{fit$ids}. If no stable labels are
-available, the function falls back to local row positions.
+When several models are supplied, sign-flip columns are aligned using the
+column named by \code{id}. This column should be created once in the complete
+data set and retained in all data sets used to fit the models. The source
+identifier must be globally unique before the data are filtered or
+reordered. The \code{id} argument is not used for a single model because no
+cross-model alignment is required.
 
 For specifications obtained by selecting studies from a common master data
-set, use \code{metafor::rma.uni(..., subset = selection)} rather than passing an
-already filtered object through \code{data = data[selection, ]}. The former
-preserves the original row positions in \code{fit$ids}. When specifications may
-be reordered or are built from separately filtered data, provide stable
-study labels to \code{rma.uni()} with \code{slab = study_id}.
+set, create the identifier before filtering and retain it in every model's
+data. For example, use \code{flipmeta(fits, id = "study_id")}.
 }

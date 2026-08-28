@@ -1,21 +1,23 @@
 #' Flipmeta score sign-flipping tests for metafor models
 #'
 #' @param fit An object of class `"rma"` from `metafor::rma.uni()`, or a list of such objects.
+#' @param id Character scalar naming the observation identifier column in each
+#'   model's `fit$data`. It is required when `fit` is a list and ignored for a
+#'   single model. For model lists, the column must be present and contain
+#'   unique, non-missing identifiers in every model.
 #' @param B Number of sign-flips.
 #' @param flips Optional matrix of precomputed flips.
 #' @details
-#' When several models are supplied, sign-flip columns are aligned using
-#' observation labels recovered from each `rma.uni` fit. User-supplied
-#' `slab` labels are preferred, followed by non-default row names and the
-#' original row positions stored in `fit$ids`. If no stable labels are
-#' available, the function falls back to local row positions.
+#' When several models are supplied, sign-flip columns are aligned using the
+#' column named by `id`. This column should be created once in the complete
+#' data set and retained in all data sets used to fit the models. The source
+#' identifier must be globally unique before the data are filtered or
+#' reordered. The `id` argument is not used for a single model because no
+#' cross-model alignment is required.
 #'
 #' For specifications obtained by selecting studies from a common master data
-#' set, use `metafor::rma.uni(..., subset = selection)` rather than passing an
-#' already filtered object through `data = data[selection, ]`. The former
-#' preserves the original row positions in `fit$ids`. When specifications may
-#' be reordered or are built from separately filtered data, provide stable
-#' study labels to `rma.uni()` with `slab = study_id`.
+#' set, create the identifier before filtering and retain it in every model's
+#' data. For example, use `flipmeta(fits, id = "study_id")`.
 #' @param tested_coeffs Optional character vector of coefficients to test.
 #' @param method Optional heterogeneity estimator. One of `"REML"`, `"ML"`,
 #'   `"DL"`, or `"EE"`. If `NULL`, the method stored in `fit` is used. `"EE"`
@@ -38,14 +40,20 @@ flipmeta <- function(
     extra = NULL,
     progress = TRUE,
     tol = .Machine$double.eps^0.25,
-    control = list()
+    control = list(),
+    id = NULL
 ) {
     control_values <- .flipmeta_control(control)
     method <- .flipmeta_match_method(method)
 
     if (is.list(fit) && !inherits(fit, "rma")) {
+        if (is.null(id)) {
+            stop("'id' must be supplied when 'fit' is a list of models.")
+        }
+
         .join_flipmeta(
             fits = fit,
+            id = id,
             B = B,
             flips = flips,
             tested_coeffs = tested_coeffs,
@@ -70,6 +78,7 @@ flipmeta <- function(
 
 .flipmeta_single <- function(
     fit,
+    id = NULL,
     B = 5000,
     flips = NULL,
     tested_coeffs = NULL,
@@ -107,7 +116,7 @@ flipmeta <- function(
 
     k <- nrow(X)
 
-    obs_names <- .flipmeta_obs_names(fit)
+    obs_names <- .flipmeta_obs_names(fit, id = id)
     rownames(X) <- obs_names
 
     coef_names <- colnames(X)
@@ -171,6 +180,12 @@ flipmeta <- function(
 
     scores <- matrix(NA_real_, nrow = kall, ncol = p_test)
     Tspace <- matrix(NA_real_, nrow = B_eff, ncol = p_test)
+
+    score_names <- colnames(flips_all)
+    if (is.null(score_names)) {
+        score_names <- obs_names
+    }
+    rownames(scores) <- score_names
 
     colnames(scores) <- tested_names
     colnames(Tspace) <- tested_names
@@ -363,26 +378,40 @@ flipmeta <- function(
     )
 }
 
-.flipmeta_obs_names <- function(fit) {
+.flipmeta_obs_names <- function(fit, id = NULL) {
     X <- as.matrix(fit$X)
     k <- nrow(X)
     default_names <- as.character(seq_len(k))
 
-    # `slab` is metafor's study-label field. Prefer non-default labels
-    # because they remain stable when specifications are reordered or
-    # filtered before fitting.
-    slab <- fit$slab
-
-    if (!is.null(slab) && length(slab) == k) {
-        slab <- as.character(slab)
-
-        if (!anyNA(slab) && !identical(slab, default_names)) {
-            if (anyDuplicated(slab)) {
-                stop("'fit$slab' must contain unique study labels.")
-            }
-
-            return(slab)
+    if (!is.null(id)) {
+        if (!is.character(id) || length(id) != 1L || is.na(id) || !nzchar(id)) {
+            stop("'id' must be a single, non-empty character string.")
         }
+
+        data <- fit$data
+        if (is.null(data) || !is.data.frame(data) || !id %in% names(data)) {
+            stop("Column '", id, "' was not found in 'fit$data'.")
+        }
+
+        ids <- fit$ids
+        if (is.null(ids)) {
+            if (nrow(data) != k) {
+                stop("Could not identify the observations used by the model in 'fit$data'.")
+            }
+            ids <- seq_len(k)
+        }
+
+        ids <- as.integer(ids)
+        if (length(ids) != k || anyNA(ids) || any(ids < 1L) || any(ids > nrow(data))) {
+            stop("Could not identify the observations used by the model in 'fit$data'.")
+        }
+
+        obs_names <- as.character(data[[id]][ids])
+        if (anyNA(obs_names) || anyDuplicated(obs_names)) {
+            stop("Column '", id, "' must contain unique, non-missing identifiers for each model.")
+        }
+
+        return(obs_names)
     }
 
     rn <- rownames(X)
