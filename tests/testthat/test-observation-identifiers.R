@@ -25,6 +25,7 @@ test_that("metafor study labels align reordered specifications", {
     )
 
     expect_equal(out$objects$a$Tspace, out$objects$b$Tspace, tolerance = 1e-10)
+    expect_equal(out$objects$a$scores, out$objects$b$scores, tolerance = 1e-10)
 })
 
 test_that("metafor subset positions are recovered", {

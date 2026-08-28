@@ -162,8 +162,8 @@ flipmeta <- function(
             )
         }
 
-        used_rows <- colnames(flips_all) %in% rows
-        flips_eff <- flips_all[, rows, drop = FALSE]
+        used_rows <- match(rows, colnames(flips_all))
+        flips_eff <- flips_all[, used_rows, drop = FALSE]
     }
 
     pval <- rep(NA_real_, p_test)
