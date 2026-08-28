@@ -415,21 +415,23 @@
     .catf("Heterogeneity\u00b9:")
     .blank(2)
 
-    .print_line(
-        "tau^2 (estimated amount of residual heterogeneity):",
-        sprintf(
-            "%s (SE = %s)",
-            .fmt(x$rma$tau2, digits = digits),
-            .fmt(x$rma$se.tau2, digits = digits)
-        ),
-        width = width
-    )
+    if(!(identical(x$rma$method, "EE") || identical(x$rma$method, "FE"))){
+        .print_line(
+            "tau^2 (estimated amount of residual heterogeneity):",
+            sprintf(
+                "%s (SE = %s)",
+                .fmt(x$rma$tau2, digits = digits),
+                .fmt(x$rma$se.tau2, digits = digits)
+            ),
+            width = width
+        )
 
-    .print_line(
-        "tau (square root of estimated tau^2 value):",
-        .fmt(sqrt(x$rma$tau2), digits = digits),
-        width = width
-    )
+        .print_line(
+            "tau (square root of estimated tau^2 value):",
+            .fmt(sqrt(x$rma$tau2), digits = digits),
+            width = width
+        )
+    }
 
     .print_line(
         "I^2 (residual heterogeneity / unaccounted variability):",
@@ -624,7 +626,7 @@
 
     .blank()
 
-    model_type <- if (identical(x$rma$method, "EE")) {
+    model_type <- if (identical(x$rma$method, "EE") | identical(x$rma$method, "FE")) {
         "Equal-Effects Model"
     } else {
         "Mixed-Effects Model"
@@ -668,4 +670,36 @@
     )
 
     cat("\u00b9 Values based on the metafor::rma() function.\n")
+}
+
+#' Transforming p-values
+#'
+#' @param p a numeric vector with p-values
+#' @param method the transformation method. Can be one of "raw" (no transformation),
+#' "-log10" or "z". Can also be a custom function.
+#' @returns the transformed p-values
+#' @export
+#'
+#' @examples
+#' p <- c(0.01, 0.05, 0.8)
+#' transf_p(p, method = "raw")
+#' transf_p(p, method = "z")
+#' # with custom function
+#' transf_p(p, method = function(x) x/2)
+
+transf_p <- function(p, method = "raw") {
+    stopifnot(is.numeric(p), all(p >= 0 & p <= 1, na.rm = TRUE))
+
+    if (is.function(method)) {
+        return(method(p))
+    }
+
+    method <- match.arg(method, c("raw", "-log10", "z"))
+
+    switch(
+        method,
+        "raw" = p,
+        "-log10" = -log10(p),
+        "z" = qnorm(p / 2, lower.tail = FALSE)
+    )
 }
