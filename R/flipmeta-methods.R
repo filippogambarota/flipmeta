@@ -85,7 +85,7 @@ print.fml <- function(x, digits = 4, max_rows = 20, ...) {
         digits = digits,
         p_cols = c("p", "p.adj", "pval", "pval.adj", "p.value"),
         note_cols = c("estimate"),
-        note_marker = c("estimate" = "¹"),
+        note_marker = c("estimate" = "\u00b9"),
         signif_col = signif_col,
         signif.stars = getOption("show.signif.stars"),
         title = "Joined Model Results:"
@@ -99,7 +99,7 @@ print.fml <- function(x, digits = 4, max_rows = 20, ...) {
         )
     }
 
-    cat("¹ Values based on the metafor::rma() function.\n")
+    cat("\u00b9 Values based on the metafor::rma() function.\n")
 
     invisible(x)
 }

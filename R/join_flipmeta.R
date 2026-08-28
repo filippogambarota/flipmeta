@@ -28,7 +28,7 @@
 
     if (is.null(flips)) {
 
-        flips_all <- flipscores:::make_flips(
+        flips_all <- flipscores::make_flips(
             n_obs = length(obs_names),
             n_flips = B
         )

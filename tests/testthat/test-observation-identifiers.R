@@ -14,7 +14,7 @@ test_that("metafor study labels align reordered specifications", {
         data = dat[c(2, 1, 3, 4, 5, 6), ]
     )
 
-    flips <- flipscores:::make_flips(n_obs = nrow(dat), n_flips = 32)
+    flips <- flipscores::make_flips(n_obs = nrow(dat), n_flips = 32)
     colnames(flips) <- dat$study_id
 
     out <- flipmeta::flipmeta(

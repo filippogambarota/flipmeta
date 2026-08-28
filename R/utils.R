@@ -50,7 +50,7 @@
 
         tau2_0 <- fit0$tau2
         beta0  <- as.numeric(fit0$beta)
-        mu0    <- as.numeric(fitted(fit0))
+        mu0    <- as.numeric(stats::fitted(fit0))
         ei0    <- as.numeric(yi_vec - mu0)
         wi0    <- as.numeric(1 / (vi_vec + tau2_0))
     }
@@ -208,7 +208,7 @@
         0.5 * (sum(log(vtot)) + sum(yi_vec^2 / vtot))
     }
 
-    optimize(
+    stats::optimize(
         f = neg_ll,
         interval = interval,
         tol = tol
@@ -375,7 +375,7 @@
 #'
 #' @keywords internal
 .signif_symbols <- function(p) {
-    as.character(symnum(
+    as.character(stats::symnum(
         p,
         corr = FALSE,
         na = FALSE,
@@ -412,7 +412,7 @@
 #'
 #' @keywords internal
 .print_heterogeneity <- function(x, digits = 4, width = 58) {
-    .catf("Heterogeneity¹:")
+    .catf("Heterogeneity\u00b9:")
     .blank(2)
 
     .print_line(
@@ -460,7 +460,7 @@
 #' @keywords internal
 .apply_note_markers <- function(out,
                                 note_cols = c("estimate"),
-                                note_marker = c("estimate" = "¹")) {
+                                note_marker = c("estimate" = "\u00b9")) {
 
     note_cols <- intersect(note_cols, names(out))
 
@@ -475,7 +475,7 @@
         } else if (length(note_marker) == 1L) {
             marker <- note_marker[[1L]]
         } else {
-            marker <- "¹"
+            marker <- "\u00b9"
         }
 
         names(out)[names(out) == nm] <- paste0(nm, marker)
@@ -511,7 +511,7 @@
                                 digits = 4,
                                 p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
                                 note_cols = c("estimate", "p"),
-                                note_marker = c("estimate" = "¹", "p" = "*"),
+                                note_marker = c("estimate" = "\u00b9", "p" = "*"),
                                 signif_col = NULL,
                                 signif.stars = getOption("show.signif.stars")) {
     tab <- as.data.frame(tab, check.names = FALSE)
@@ -586,7 +586,7 @@
                               digits = 4,
                               p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
                               note_cols = c("estimate", "p"),
-                              note_marker = c("estimate" = "¹"),
+                              note_marker = c("estimate" = "\u00b9"),
                               signif_col = NULL,
                               signif.stars = getOption("show.signif.stars"),
                               title = "Model Results:") {
@@ -661,11 +661,11 @@
         digits = digits,
         p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
         note_cols = c("estimate"),
-        note_marker = c("estimate" = "¹"),
+        note_marker = c("estimate" = "\u00b9"),
         signif_col = signif_col,
         signif.stars = getOption("show.signif.stars"),
         title = "Model Results:"
     )
 
-    cat("¹ Values based on the metafor::rma() function.\n")
+    cat("\u00b9 Values based on the metafor::rma() function.\n")
 }

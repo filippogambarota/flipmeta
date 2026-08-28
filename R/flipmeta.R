@@ -149,7 +149,7 @@ flipmeta <- function(
     p_test <- length(tested_id)
 
     if (is.null(flips)) {
-        flips_all <- flipscores:::make_flips(n_obs = k, n_flips = B)
+        flips_all <- flipscores::make_flips(n_obs = k, n_flips = B)
         colnames(flips_all) <- rownames(X)
     } else {
         flips_all <- flips
