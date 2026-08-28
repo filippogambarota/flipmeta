@@ -337,6 +337,7 @@ flipmeta <- function(
 
     summary_table <- data.frame(
         .assign = assign_id[tested_id],
+        k = fit$k,
         coefficient = tested_names,
         estimate = beta_all[tested_names],
         se = se_all[tested_names],
@@ -369,7 +370,9 @@ flipmeta <- function(
         kall = kall,
         B = B_eff,
         mods = mods,
-        rma = rma
+        rma = rma,
+        p.adjust = FALSE,
+        tested_coeffs
     )
 
     class(out) <- unique(c("fm", class(out)))
