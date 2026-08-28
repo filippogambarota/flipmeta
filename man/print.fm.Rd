@@ -13,7 +13,7 @@
 
 \item{width}{Width of the label column used for aligned output.}
 
-\item{...}{Further arguments passed to internal printing functions.}
+\item{...}{Reserved for compatibility with the \code{print()} generic.}
 }
 \value{
 Invisibly returns \code{x}.

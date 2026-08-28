@@ -215,8 +215,38 @@
     )$minimum
 }
 
-.check_col <- function(data, col){
-    match.arg(col, colnames(data), several.ok = FALSE)
+.check_col <- function(data, col) {
+    if (!is.character(col) || length(col) != 1L || is.na(col) || !col %in% names(data)) {
+        stop(
+            "'", deparse(substitute(col)), "' must name a column in the result table.",
+            call. = FALSE
+        )
+    }
+
+    col
+}
+
+.validate_nonnegative_integer <- function(x, name) {
+    if (
+        !is.numeric(x) || length(x) != 1L || is.na(x) || !is.finite(x) ||
+        x < 0 || x != floor(x)
+    ) {
+        stop("'", name, "' must be a non-negative integer.", call. = FALSE)
+    }
+
+    as.integer(x)
+}
+
+.validate_optional_flag <- function(x, name) {
+    if (is.null(x)) {
+        return(NULL)
+    }
+
+    if (!is.logical(x) || length(x) != 1L || is.na(x)) {
+        stop("'", name, "' must be NULL or a non-missing logical scalar.", call. = FALSE)
+    }
+
+    x
 }
 
 #' Print formatted text
@@ -469,6 +499,8 @@
 #'   footnote marker in their printed name.
 #' @param note_marker Named character vector mapping column names to footnote
 #'   markers.
+#' @param signif_col Optional column used to compute significance symbols. If
+#'   `NULL`, an adjusted p-value column is preferred when available.
 #' @param signif.stars Logical. If `TRUE`, add significance symbols.
 #'
 #' @return A formatted data frame.
@@ -480,6 +512,7 @@
                                 p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
                                 note_cols = c("estimate", "p"),
                                 note_marker = c("estimate" = "¹", "p" = "*"),
+                                signif_col = NULL,
                                 signif.stars = getOption("show.signif.stars")) {
     tab <- as.data.frame(tab, check.names = FALSE)
 
@@ -512,8 +545,13 @@
         note_marker = note_marker
     )
 
-    if (isTRUE(signif.stars) && "p" %in% names(tab)) {
-        signif <- .signif_symbols(tab$p)
+    if (is.null(signif_col) || length(signif_col) != 1L ||
+        is.na(signif_col) || !signif_col %in% names(tab)) {
+        signif_col <- intersect(c("p.adj", "pval.adj", "p", "pval", "p.value"), names(tab))[1L]
+    }
+
+    if (isTRUE(signif.stars) && !is.na(signif_col)) {
+        signif <- .signif_symbols(tab[[signif_col]])
         out <- cbind(out, signif)
         colnames(out)[ncol(out)] <- ""
     }
@@ -536,6 +574,7 @@
 #'   footnote marker in their printed name.
 #' @param note_marker Named character vector mapping column names to footnote
 #'   markers.
+#' @param signif_col Optional column used to compute significance symbols.
 #' @param signif.stars Logical. If `TRUE`, add significance symbols.
 #' @param title Title printed before the table.
 #'
@@ -548,6 +587,7 @@
                               p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
                               note_cols = c("estimate", "p"),
                               note_marker = c("estimate" = "¹"),
+                              signif_col = NULL,
                               signif.stars = getOption("show.signif.stars"),
                               title = "Model Results:") {
     out <- .prepare_coef_table(
@@ -557,13 +597,19 @@
         p_cols = p_cols,
         note_cols = note_cols,
         note_marker = note_marker,
+        signif_col = signif_col,
         signif.stars = signif.stars
     )
 
     cat(title, "\n\n", sep = "")
     print(out, quote = FALSE, right = TRUE, print.gap = 2)
 
-    if (isTRUE(signif.stars) && "p" %in% names(tab)) {
+    if (is.null(signif_col) || length(signif_col) != 1L ||
+        is.na(signif_col) || !signif_col %in% names(tab)) {
+        signif_col <- intersect(c("p.adj", "pval.adj", "p", "pval", "p.value"), names(tab))[1L]
+    }
+
+    if (isTRUE(signif.stars) && !is.na(signif_col)) {
         .print_signif_legend()
     }
 
@@ -572,8 +618,10 @@
     invisible(tab)
 }
 
-#' @export
-.print_all_fm <- function(x, digits = 4, width = 58, ansi = interactive(), ...){
+.print_all_fm <- function(x, digits = 4, width = 58, ansi = interactive()) {
+    digits <- .validate_nonnegative_integer(digits, "digits")
+    width <- .validate_positive_integer(width, "width")
+
     .blank()
 
     model_type <- if (identical(x$rma$method, "EE")) {
@@ -600,13 +648,21 @@
 
     .blank()
 
+    result_cols <- c("estimate", "statistic", "score", "p")
+    signif_col <- "p"
+    if (!is.null(x$p.adjust.method) && "p.adj" %in% names(x$summary_table)) {
+        result_cols <- c(result_cols, "p.adj")
+        signif_col <- "p.adj"
+    }
+
     .print_coef_table(
         tab = x$summary_table,
-        cols = c("estimate", "statistic", "score", "p"),
+        cols = result_cols,
         digits = digits,
         p_cols = c("p", "pval", "p.value", "p.adj", "pval.adj"),
         note_cols = c("estimate"),
         note_marker = c("estimate" = "¹"),
+        signif_col = signif_col,
         signif.stars = getOption("show.signif.stars"),
         title = "Model Results:"
     )
