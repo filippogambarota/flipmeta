@@ -24,7 +24,10 @@ flipmeta(
 
 \item{flips}{Optional matrix of precomputed flips.}
 
-\item{tested_coeffs}{Optional character vector of coefficients to test.}
+\item{tested_coeffs}{Coefficients to test. For a single model, a character
+vector. For a list of models, either a character vector applied to every
+model or a list with one character vector (or \code{NULL}) per model. A \code{NULL}
+value tests all coefficients in the corresponding model.}
 
 \item{method}{Optional heterogeneity estimator. One of \code{"REML"}, \code{"ML"},
 \code{"DL"}, or \code{"EE"}. If \code{NULL}, the method stored in \code{fit} is used. \code{"EE"}

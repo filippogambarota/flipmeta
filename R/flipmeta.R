@@ -18,7 +18,10 @@
 #' For specifications obtained by selecting studies from a common master data
 #' set, create the identifier before filtering and retain it in every model's
 #' data. For example, use `flipmeta(fits, id = "study_id")`.
-#' @param tested_coeffs Optional character vector of coefficients to test.
+#' @param tested_coeffs Coefficients to test. For a single model, a character
+#'   vector. For a list of models, either a character vector applied to every
+#'   model or a list with one character vector (or `NULL`) per model. A `NULL`
+#'   value tests all coefficients in the corresponding model.
 #' @param method Optional heterogeneity estimator. One of `"REML"`, `"ML"`,
 #'   `"DL"`, or `"EE"`. If `NULL`, the method stored in `fit` is used. `"EE"`
 #'   fits an equal-effects model with tau^2 fixed at 0.
@@ -126,18 +129,11 @@ flipmeta <- function(
         colnames(X) <- coef_names
     }
 
-    if (is.null(tested_coeffs)) {
-        tested_id <- seq_along(coef_names)
-    } else {
-        tested_id <- match(tested_coeffs, coef_names)
-        tested_id <- tested_id[!is.na(tested_id)]
-    }
-
-    if (length(tested_id) == 0L) {
-        stop("None of 'tested_coeffs' were found in the fitted model.")
-    }
-
-    tested_names <- coef_names[tested_id]
+    tested_names <- .match_tested_coeffs(
+        requested = tested_coeffs,
+        available = coef_names
+    )
+    tested_id <- match(tested_names, coef_names)
     p_test <- length(tested_id)
 
     if (is.null(flips)) {
@@ -474,13 +470,79 @@ flipmeta <- function(
             )
         }
 
-        return(tested_coeffs)
+        return(Map(
+            function(requested, available, model_name) {
+                .match_tested_coeffs(
+                    requested = requested,
+                    available = available,
+                    model_name = model_name
+                )
+            },
+            tested_coeffs,
+            all_names,
+            names(fits)
+        ))
     }
 
-    tested_coeffs_clean <- gsub(" ", "", tested_coeffs)
+    tested_coeffs <- .validate_tested_coeffs(tested_coeffs)
+    known_coeffs <- unique(unlist(all_names, use.names = FALSE))
+    unknown <- setdiff(tested_coeffs, known_coeffs)
 
-    lapply(all_names, function(nms) {
-        nms_clean <- gsub(" ", "", nms)
-        nms[nms_clean %in% tested_coeffs_clean]
-    })
+    if (length(unknown) > 0L) {
+        stop(
+            "Unknown coefficient(s) in 'tested_coeffs': ",
+            paste(unknown, collapse = ", "),
+            call. = FALSE
+        )
+    }
+
+    Map(
+        function(available, model_name) {
+            selected <- tested_coeffs[tested_coeffs %in% available]
+            if (length(selected) == 0L) {
+                stop(
+                    "None of 'tested_coeffs' were found in model '",
+                    model_name,
+                    "'.",
+                    call. = FALSE
+                )
+            }
+            selected
+        },
+        all_names,
+        names(fits)
+    )
+}
+
+.validate_tested_coeffs <- function(x) {
+    if (!is.character(x) || length(x) == 0L || anyNA(x) || any(!nzchar(x))) {
+        stop(
+            "'tested_coeffs' must be a non-empty character vector without missing or empty values.",
+            call. = FALSE
+        )
+    }
+
+    unique(x)
+}
+
+.match_tested_coeffs <- function(requested, available, model_name = NULL) {
+    if (is.null(requested)) {
+        return(available)
+    }
+
+    requested <- .validate_tested_coeffs(requested)
+    unknown <- setdiff(requested, available)
+
+    if (length(unknown) > 0L) {
+        where <- if (is.null(model_name)) "the fitted model" else paste0("model '", model_name, "'")
+        stop(
+            "Unknown coefficient(s) in ",
+            where,
+            ": ",
+            paste(unknown, collapse = ", "),
+            call. = FALSE
+        )
+    }
+
+    requested
 }
