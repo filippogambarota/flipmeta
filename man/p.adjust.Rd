@@ -12,9 +12,14 @@ p.adjust(object, by = NULL, method = "maxT", tail = 0, ...)
 \item{by}{Optional character vector of columns in \code{object$summary_table}
 defining separate families of hypotheses.}
 
-\item{method}{Adjustment method passed to \code{flipscores::p.adjust()}.}
+\item{method}{Adjustment method passed to \code{flipscores::p.adjust()}. It can
+be \code{"maxT"}, one of the min-p aliases supported by \code{flipscores}
+(\code{"minp"}, \code{"minP"}, \code{"Tippet"}, \code{"Tippett"}), another method accepted
+by that function, or a custom function taking \code{Tspace} and returning one
+adjusted p-value per column.}
 
-\item{tail}{Tail argument passed to \code{flipscores::p.adjust()}.}
+\item{tail}{Direction of the alternative hypothesis: \code{0} or
+\code{"two.sided"}, \code{-1} or \code{"less"}, and \code{1} or \code{"greater"}.}
 
 \item{...}{Further arguments passed to \code{flipscores::p.adjust()}.}
 }
@@ -25,4 +30,13 @@ The input object with adjusted p-values in \code{summary_table$p.adj}.
 Adjusts p-values using \code{flipscores::p.adjust()}. If \code{by} is supplied, the
 adjustment is performed separately within each family defined by columns of
 \code{object$summary_table}.
+}
+\details{
+This function is specific to \code{flipmeta} objects and masks
+\code{\link[stats:p.adjust]{stats::p.adjust()}}, which adjusts an ordinary numeric vector of p-values.
+Use the qualified name \code{stats::p.adjust()} when the base R behavior is
+intended.
+}
+\seealso{
+\code{\link[stats:p.adjust]{stats::p.adjust()}}, \code{flipscores::p.adjust()}
 }
