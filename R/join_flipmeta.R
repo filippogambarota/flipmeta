@@ -117,6 +117,7 @@
             extra[model_rows, , drop = FALSE]
         )
         rownames(summary_table) <- NULL
+        extra_cols <- colnames(extra)
     }
 
     out <- list(
@@ -125,7 +126,10 @@
         objects       = objects,
         flips         = flips_all,
         B             = B_eff,
-        call          = match.call()
+        call          = match.call(),
+        p.adjust      = FALSE,
+        tested_coeffs = tested_coeffs,
+        extra_cols = extra_cols
     )
 
     class(out) <- unique(c("fml", "fm", class(out)))
