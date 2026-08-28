@@ -31,62 +31,63 @@ p.adjust <- function(object, by = NULL, method = "maxT", tail = 0, ...) {
     tail <- .validate_adjustment_tail(tail)
 
     if (is.null(by)) {
-        return(flipscores::p.adjust(
+        object <- flipscores::p.adjust(
             object = object,
             method = method,
             tail = tail,
             ...
-        ))
-    }
-
-    if (
-        !is.character(by) || length(by) < 1L || anyNA(by) ||
-        any(!nzchar(by)) || anyDuplicated(by)
-    ) {
-        stop(
-            "'by' must be a non-empty character vector of unique column names.",
-            call. = FALSE
         )
-    }
+    } else{
+        if (
+            !is.character(by) || length(by) < 1L || anyNA(by) ||
+            any(!nzchar(by)) || anyDuplicated(by)
+        ) {
+            stop(
+                "'by' must be a non-empty character vector of unique column names.",
+                call. = FALSE
+            )
+        }
 
-    missing_by <- setdiff(by, names(object$summary_table))
-    if (length(missing_by) > 0L) {
-        stop(
-            "Unknown grouping column(s) in 'by': ",
-            paste(missing_by, collapse = ", "),
-            call. = FALSE
-        )
-    }
+        missing_by <- setdiff(by, names(object$summary_table))
+        if (length(missing_by) > 0L) {
+            stop(
+                "Unknown grouping column(s) in 'by': ",
+                paste(missing_by, collapse = ", "),
+                call. = FALSE
+            )
+        }
 
-    by_data <- object$summary_table[by]
-    if (anyNA(by_data)) {
-        stop("Grouping columns in 'by' cannot contain missing values.", call. = FALSE)
-    }
+        by_data <- object$summary_table[by]
+        if (anyNA(by_data)) {
+            stop("Grouping columns in 'by' cannot contain missing values.", call. = FALSE)
+        }
 
-    groups <- split(
-        seq_len(nrow(object$summary_table)),
-        interaction(by_data, drop = TRUE, sep = ".")
-    )
-
-    object$summary_table$p.adj <- NA_real_
-
-    for (idx in groups) {
-        object_i <- object
-        object_i$summary_table <- object$summary_table[idx, , drop = FALSE]
-        object_i$Tspace <- object$Tspace[, idx, drop = FALSE]
-
-        object_i <- flipscores::p.adjust(
-            object = object_i,
-            method = method,
-            tail = tail,
-            ...
+        groups <- split(
+            seq_len(nrow(object$summary_table)),
+            interaction(by_data, drop = TRUE, sep = ".")
         )
 
-        object$summary_table$p.adj[idx] <- object_i$summary_table$p.adj
+        object$summary_table$p.adj <- NA_real_
+
+        for (idx in groups) {
+            object_i <- object
+            object_i$summary_table <- object$summary_table[idx, , drop = FALSE]
+            object_i$Tspace <- object$Tspace[, idx, drop = FALSE]
+
+            object_i <- flipscores::p.adjust(
+                object = object_i,
+                method = method,
+                tail = tail,
+                ...
+            )
+
+            object$summary_table$p.adj[idx] <- object_i$summary_table$p.adj
+        }
     }
 
     object$p.adjust.method <- method
     object$p.adjust.by <- by
+    object$p.adjust <- TRUE
     object
 }
 
