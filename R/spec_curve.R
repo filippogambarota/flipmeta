@@ -1,6 +1,6 @@
 #' Plot a Specification Curve
 #'
-#' Creates a specification curve plot for an object of class [`fml`].
+#' Creates a specification curve plot for an object of class `flm`.
 #' Specifications are ordered by their estimated effect and displayed together
 #' with the number of observations or studies included in each specification
 #' and the analytic choices defining each scenario.
@@ -10,7 +10,7 @@
 #' specifications that are significant before but not after correction, and
 #' specifications that remain significant after correction.
 #'
-#' @param x An object of class [`fml`].
+#' @param x An object of class `fml`.
 #' @param coef Optional character vector specifying the coefficient(s) to
 #'   include. If `NULL`, all coefficients are included.
 #' @param wrap_width Positive integer indicating the maximum number of
