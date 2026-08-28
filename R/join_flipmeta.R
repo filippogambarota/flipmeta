@@ -16,14 +16,7 @@
         stop("All elements of 'fits' must be 'rma.uni' objects.")
     }
 
-    fits_named <- fits
-
-    if (is.null(names(fits_named))) {
-        names(fits_named) <- paste0("mod", seq_along(fits_named))
-    } else {
-        empty_names <- names(fits_named) == "" | is.na(names(fits_named))
-        names(fits_named)[empty_names] <- paste0("mod", which(empty_names))
-    }
+    fits_named <- .normalize_fit_names(fits)
 
     tested_list <- .resolve_tested_coeffs(
         fits = fits_named,
@@ -134,4 +127,26 @@
     class(out) <- unique(c("fml", "fm", class(out)))
 
     out
+}
+
+.normalize_fit_names <- function(fits) {
+    model_names <- names(fits)
+
+    valid_names <-
+        !is.null(model_names) &&
+        length(model_names) == length(fits) &&
+        !anyNA(model_names) &&
+        all(nzchar(trimws(model_names))) &&
+        !anyDuplicated(model_names)
+
+    if (!valid_names) {
+        warning(
+            "Model names are missing, empty, or duplicated; ",
+            "all model names were replaced with 'mod1', 'mod2', ...",
+            call. = FALSE
+        )
+        names(fits) <- paste0("mod", seq_along(fits))
+    }
+
+    fits
 }
