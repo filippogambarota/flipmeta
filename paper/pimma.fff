@@ -17,11 +17,11 @@
 \ifnextchar[{\eatarg}{}
 
 
-\caption{\label{fig-holm-vs-maxt}Holm vs maxT}
+\caption{\label{fig-vol-cor-plot}}
 
 \centering{
 
-\pandocbounded{\includegraphics[keepaspectratio]{pimma_files/figure-pdf/fig-holm-vs-maxt-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{pimma_files/figure-pdf/fig-vol-cor-plot-1.pdf}}
 
 }
 
