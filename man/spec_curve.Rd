@@ -21,7 +21,7 @@ of observations or studies (\code{k}) for each specification, and the analytic
 choices defining each specification.
 }
 \description{
-Creates a specification curve plot for an object of class \code{flm}.
+Creates a specification curve plot for an object of class \code{fml}.
 Specifications are ordered by their estimated effect and displayed together
 with the number of observations or studies included in each specification
 and the analytic choices defining each scenario.

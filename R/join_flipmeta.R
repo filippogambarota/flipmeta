@@ -99,6 +99,7 @@
     )
 
     rownames(summary_table) <- NULL
+    extra_cols <- NULL
 
     if (!is.null(extra)) {
         if (!is.data.frame(extra) || nrow(extra) != length(objects)) {
@@ -119,7 +120,6 @@
         rownames(summary_table) <- NULL
         extra_cols <- colnames(extra)
     }
-
     out <- list(
         Tspace        = as.data.frame(Tspace),
         summary_table = summary_table,

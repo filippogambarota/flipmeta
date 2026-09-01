@@ -149,6 +149,7 @@ summary.fml <- function(object, digits = 4, max_rows = 20, ...) {
 #' @param x An object of class `"fm"` or `"fml"`.
 #' @param xvar Character scalar naming the column mapped to the x-axis.
 #' @param color Character scalar naming the column mapped to point color.
+#' @param coef Optional character vector selecting coefficients to plot.
 #' @param base_size Positive numeric base font size passed to
 #'   [ggplot2::theme_bw()].
 #' @param adjusted Either `NULL` or a logical scalar. `NULL` automatically uses
@@ -164,7 +165,7 @@ plot.fm <- function(x,
                     color = "coefficient",
                     coef = NULL,
                     base_size = 15,
-                    adjusted = TRUE,
+                    adjusted = NULL,
                     transf.p = "raw",
                     ...) {
     data <- x$summary_table
@@ -192,16 +193,22 @@ plot.fm <- function(x,
         )
     }
 
-    data[[yvar]] <- transf_p(data[[yvar]], transf.p)
-
-    transf.p.lbl <- if (is.character(transf.p)) {
-        transf.p
-    } else if (is.function(transf.p)) {
-        paste(deparse(body(transf.p)), collapse = "")
+    transformed <- transf_p(data[[yvar]], transf.p)
+    if (!is.numeric(transformed) || length(transformed) != nrow(data)) {
+        stop(
+            "'transf.p' must return one numeric value per result row.",
+            call. = FALSE
+        )
     }
+    data[[yvar]] <- transformed
 
-    #transf.p.lbl <- if(is.function(transf.p)) "custom" else transf.p
-    ylab <- sprintf("%s (%s)", yvar, transf.p.lbl)
+    ylab <- if (is.function(transf.p)) {
+        "transf.p(p)"
+    } else if (identical(transf.p, "raw")) {
+        yvar
+    } else {
+        sprintf("%s (%s)", yvar, transf.p)
+    }
 
     ggplot2::ggplot(
         data = data,
@@ -223,7 +230,7 @@ plot.fml <- function(x,
                      color = "coefficient",
                      coef = NULL,
                      base_size = 15,
-                     adjusted = TRUE,
+                     adjusted = NULL,
                      transf.p = "raw",
                      ...) {
     plot.fm(

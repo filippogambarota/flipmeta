@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.21">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Validation of flipmeta</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="check_files/libs/clipboard/clipboard.min.js"></script>
+<script src="check_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="check_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="check_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="check_files/libs/quarto-html/popper.min.js"></script>
+<script src="check_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="check_files/libs/quarto-html/anchor.min.js"></script>
+<link href="check_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="check_files/libs/quarto-html/quarto-syntax-highlighting-ea1d7ac60288e0f1efdbc993fd8432ae.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="check_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="check_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="check_files/libs/bootstrap/bootstrap-31159e84c9acb07c19510b0d3b20ca2f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Validation of flipmeta</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(metafor)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(flipscores)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">load_all</span>()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">2026</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>dat <span class="ot">&lt;-</span> <span class="fu">escalc</span>(</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">measure =</span> <span class="st">"RR"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">ai =</span> tpos,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">bi =</span> tneg,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci =</span> cpos,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">di =</span> cneg,</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat.bcg</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>dat<span class="sc">$</span>vi_equal <span class="ot">&lt;-</span> <span class="fl">0.01</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>flips <span class="ot">&lt;-</span> flipscores<span class="sc">:::</span><span class="fu">make_flips</span>(</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">nrow</span>(dat),</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_flips =</span> <span class="dv">1000</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="equal-sampling-variances" class="level1">
+<h1>Equal sampling variances</h1>
+<p>When all sampling variances are equal and <span class="math inline">\(\tau^2 = 0\)</span>, the meta-analytic weight matrix is proportional to the identity matrix. In this case, <code>flipscores</code> provides a useful benchmark for the implementation in <code>flipmeta</code>.</p>
+<section id="intercept-only-model" class="level2">
+<h2 class="anchored" data-anchor-id="intercept-only-model">Intercept-only model</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>fit_glm <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    yi <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    vi_equal,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"EE"</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>fit_fs <span class="ot">&lt;-</span> <span class="fu">flipscores</span>(</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    fit_glm,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>fit_fs<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            .assign response coefficient   estimate     score       se
+(Intercept)       0       yi (Intercept) -0.7406504 -9.628455 3.592729
+                    z       pcor     p
+(Intercept) -2.679983 -0.7432937 0.004</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient   estimate         se statistic.rma statistic
+1       0 13     intrcpt -0.7406504 0.02773501     -26.70453 -26.70453
+      score tau2_null     p
+1 -962.8455         0 0.004</code></pre>
+</div>
+</div>
+<p>The two permutation spaces should differ only by a constant scale factor.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ratio <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="dv">1</span>] <span class="sc">/</span> fit_fs<span class="sc">$</span>Tspace[, <span class="dv">1</span>]</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 9.964438 9.964438</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.000000000000008275555</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipscores =</span> fit_fs<span class="sc">$</span>summary_table<span class="sc">$</span>p,</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>flipscores   flipmeta 
+     0.004      0.004 </code></pre>
+</div>
+</div>
+<p>For the intercept-only model, the difference in scale can also be obtained from the empirical scale used by <code>flipscores</code> relative to the known meta-analytic sampling standard deviation.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sqrt</span>(<span class="fu">mean</span>(dat<span class="sc">$</span>yi<span class="sc">^</span><span class="dv">2</span>)) <span class="sc">/</span> <span class="fu">sqrt</span>(dat<span class="sc">$</span>vi_equal[<span class="dv">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 9.964438</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="one-moderator" class="level1">
+<h1>One moderator</h1>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fit_glm <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    yi <span class="sc">~</span> ablat,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    vi_equal,</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> ablat,</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"EE"</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>fit_fs <span class="ot">&lt;-</span> <span class="fu">flipscores</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    fit_glm,</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>fit_fs<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            .assign response coefficient   estimate      score         se
+(Intercept)       0       yi (Intercept)  0.1418242   0.270546  0.8047278
+ablat             1       yi       ablat -0.0263728 -66.017215 34.7126593
+                     z        pcor     p
+(Intercept)  0.3361956  0.09705132 0.831
+ablat       -1.9018196 -0.54900802 0.070</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient   estimate          se statistic.rma  statistic
+1       0 13     intrcpt  0.1418242 0.072402684      1.958826   1.958826
+2       1 13       ablat -0.0263728 0.001998709    -13.194920 -13.194920
+       score tau2_null     p
+1    27.0546         0 0.831
+2 -6601.7215         0 0.070</code></pre>
+</div>
+</div>
+<p>The proportionality is checked separately for the intercept and the moderator because each coefficient is tested under a different null model.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>ratio_intercept <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"intrcpt"</span>] <span class="sc">/</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    fit_fs<span class="sc">$</span>Tspace[, <span class="st">"(Intercept)"</span>]</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>ratio_ablat <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>] <span class="sc">/</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    fit_fs<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>]</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">intercept_min =</span> <span class="fu">min</span>(ratio_intercept),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">intercept_max =</span> <span class="fu">max</span>(ratio_intercept),</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">intercept_sd =</span> <span class="fu">sd</span>(ratio_intercept)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         intercept_min          intercept_max           intercept_sd 
+5.82644534241394307372 5.82644534241487299653 0.00000000000002989234 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">ablat_min =</span> <span class="fu">min</span>(ratio_ablat),</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">ablat_max =</span> <span class="fu">max</span>(ratio_ablat),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">ablat_sd =</span> <span class="fu">sd</span>(ratio_ablat)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            ablat_min             ablat_max              ablat_sd 
+6.9380502570643418636 6.9380502570680295804 0.0000000000001005407 </code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cbind</span>(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipscores =</span> fit_fs<span class="sc">$</span>summary_table<span class="sc">$</span>p,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     flipscores flipmeta
+[1,]      0.831    0.831
+[2,]      0.070    0.070</code></pre>
+</div>
+</div>
+</section>
+<section id="two-moderators" class="level1">
+<h1>Two moderators</h1>
+<p>We now test the same equivalence when residualization with respect to nuisance covariates is required. For the test of <code>ablat</code>, the nuisance design matrix contains the intercept and <code>year</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>fit_glm <span class="ot">&lt;-</span> <span class="fu">glm</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    yi <span class="sc">~</span> ablat <span class="sc">+</span> year,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    vi_equal,</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> ablat <span class="sc">+</span> year,</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"EE"</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>fit_fs <span class="ot">&lt;-</span> <span class="fu">flipscores</span>(</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    fit_glm,</span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>fit_fs<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>            .assign response coefficient      estimate         score
+(Intercept)       0       yi (Intercept) -15.065370543  -0.003078807
+ablat             1       yi       ablat  -0.022523852 -31.594166530
+year              2       yi        year   0.007668684   6.163487792
+                      se          z       pcor     p
+(Intercept)  0.008657586 -0.3556196 -0.1072233 0.604
+ablat       24.480485833 -1.2905858 -0.3891262 0.503
+year        17.171008587  0.3589473  0.1082267 0.598</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient      estimate          se statistic.rma statistic
+1       0 13     intrcpt -15.065370543 6.995176466     -2.153680 -2.153680
+2       1 13       ablat  -0.022523852 0.002670041     -8.435771 -8.435771
+3       2 13        year   0.007668684 0.003527339      2.174071  2.174071
+          score tau2_null     p
+1    -0.3078807         0 0.604
+2 -3159.4166531         0 0.503
+3   616.3487792         0 0.598</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ratio_ablat <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>] <span class="sc">/</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    fit_fs<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>]</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(ratio_ablat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 6.536389 6.536389</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(ratio_ablat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.0000000002578348</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cbind</span>(</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipscores =</span> fit_fs<span class="sc">$</span>summary_table<span class="sc">$</span>p,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     flipscores flipmeta
+[1,]      0.604    0.604
+[2,]      0.503    0.503
+[3,]      0.598    0.598</code></pre>
+</div>
+</div>
+</section>
+<section id="heterogeneous-sampling-variances" class="level1">
+<h1>Heterogeneous sampling variances</h1>
+<p>With heterogeneous sampling variances, the meta-analytic model directly assumes</p>
+<p><span class="math display">\[
+\operatorname{Var}(y_i) = v_i
+\]</span></p>
+<p>and therefore</p>
+<p><span class="math display">\[
+W = \operatorname{diag}(1/v_i).
+\]</span></p>
+<p>A weighted Gaussian GLM does not provide the same direct benchmark for the sign-flipping standardization. We therefore compare <code>flipmeta</code> directly with the analytical expressions obtained by specializing the score sign-flipping test to the meta-regression model.</p>
+<p>We consider <code>ablat</code> as the focal moderator and <code>year</code> as a nuisance moderator.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    vi,</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> ablat <span class="sc">+</span> year,</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"EE"</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient     estimate           se statistic.rma statistic
+1       0 13     intrcpt 17.151801172 10.832056246      1.583430  1.583430
+2       1 13       ablat -0.033875449  0.003996339     -8.476621 -8.476621
+3       2 13        year -0.008466039  0.005455780     -1.551756 -1.551756
+        score tau2_null     p
+1     0.14618         0 0.579
+2 -2121.09675         0 0.250
+3  -284.42419         0 0.582</code></pre>
+</div>
+</div>
+<section id="score-contributions" class="level2">
+<h2 class="anchored" data-anchor-id="score-contributions">Score contributions</h2>
+<p>Let <span class="math inline">\(x\)</span> denote the focal moderator and <span class="math inline">\(Z\)</span> the nuisance design matrix. Under <span class="math inline">\(H_0:\beta_x=0\)</span>,</p>
+<p><span class="math display">\[
+\hat\gamma_0 =
+(Z^\top WZ)^{-1} Z^\top Wy
+\]</span></p>
+<p>and</p>
+<p><span class="math display">\[
+r_0 = y-Z\hat\gamma_0.
+\]</span></p>
+<p>The focal predictor is residualized with respect to the nuisance covariates as</p>
+<p><span class="math display">\[
+\tilde{x}
+=
+x-Z(Z^\top WZ)^{-1}Z^\top Wx.
+\]</span></p>
+<p>The individual score contributions are then</p>
+<p><span class="math display">\[
+\nu_i = \tilde{x}_i w_i r_{0i}.
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> dat<span class="sc">$</span>yi</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> dat<span class="sc">$</span>ablat</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> year, <span class="at">data =</span> dat)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>w <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> dat<span class="sc">$</span>vi</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>W <span class="ot">&lt;-</span> <span class="fu">diag</span>(w)</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>gamma0 <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> y)</span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>r0 <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    y <span class="sc">-</span> Z <span class="sc">%*%</span> gamma0</span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>gamma_x <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> x)</span>
+<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-24"><a href="#cb36-24" aria-hidden="true" tabindex="-1"></a>x_tilde <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb36-25"><a href="#cb36-25" aria-hidden="true" tabindex="-1"></a>    x <span class="sc">-</span> Z <span class="sc">%*%</span> gamma_x</span>
+<span id="cb36-26"><a href="#cb36-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb36-27"><a href="#cb36-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-28"><a href="#cb36-28" aria-hidden="true" tabindex="-1"></a>score_contributions <span class="ot">&lt;-</span> x_tilde <span class="sc">*</span> w <span class="sc">*</span> r0</span>
+<span id="cb36-29"><a href="#cb36-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-30"><a href="#cb36-30" aria-hidden="true" tabindex="-1"></a>score_oracle <span class="ot">&lt;-</span> <span class="fu">sum</span>(score_contributions)</span>
+<span id="cb36-31"><a href="#cb36-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-32"><a href="#cb36-32" aria-hidden="true" tabindex="-1"></a>score_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>score[</span>
+<span id="cb36-33"><a href="#cb36-33" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb36-34"><a href="#cb36-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb36-35"><a href="#cb36-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-36"><a href="#cb36-36" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb36-37"><a href="#cb36-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> score_oracle,</span>
+<span id="cb36-38"><a href="#cb36-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> score_flipmeta,</span>
+<span id="cb36-39"><a href="#cb36-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">ratio =</span> score_flipmeta <span class="sc">/</span> score_oracle</span>
+<span id="cb36-40"><a href="#cb36-40" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   oracle  flipmeta     ratio 
+-2121.097 -2121.097     1.000 </code></pre>
+</div>
+</div>
+</section>
+<section id="standardized-flipped-statistics" class="level2">
+<h2 class="anchored" data-anchor-id="standardized-flipped-statistics">Standardized flipped statistics</h2>
+<p>Define</p>
+<p><span class="math display">\[
+H =
+W^{1/2}Z
+(Z^\top WZ)^{-1}
+Z^\top W^{1/2}
+\]</span></p>
+<p>and</p>
+<p><span class="math display">\[
+P=I-H.
+\]</span></p>
+<p>For flip <span class="math inline">\(b\)</span>, the flipped score is</p>
+<p><span class="math display">\[
+S_b = \sum_i f_{bi}\nu_i,
+\]</span></p>
+<p>and the flip-specific variance term is</p>
+<p><span class="math display">\[
+C_b =
+x^\top
+W^{1/2}
+P F_b P F_b P
+W^{1/2}x.
+\]</span></p>
+<p>The standardized statistic is</p>
+<p><span class="math display">\[
+T_b = \frac{S_b}{\sqrt{C_b}}.
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>sqrtW <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fu">sqrt</span>(w))</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>H <span class="ot">&lt;-</span> sqrtW <span class="sc">%*%</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    Z <span class="sc">%*%</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">solve</span>(<span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z)) <span class="sc">%*%</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>(Z) <span class="sc">%*%</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    sqrtW</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="fu">diag</span>(k) <span class="sc">-</span> H</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>score_flipped <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    flips <span class="sc">%*%</span> score_contributions</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>variance_flipped <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(flips))</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (b <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(flips))) {</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>    F <span class="ot">&lt;-</span> <span class="fu">diag</span>(flips[b, ])</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>    variance_flipped[b] <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">t</span>(x) <span class="sc">%*%</span></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>            x</span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-34"><a href="#cb38-34" aria-hidden="true" tabindex="-1"></a>T_oracle <span class="ot">&lt;-</span> score_flipped <span class="sc">/</span> <span class="fu">sqrt</span>(variance_flipped)</span>
+<span id="cb38-35"><a href="#cb38-35" aria-hidden="true" tabindex="-1"></a>T_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The two permutation spaces should now coincide directly.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>ratio <span class="ot">&lt;-</span> T_flipmeta <span class="sc">/</span> T_oracle</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.000000000001709602</code></pre>
+</div>
+</div>
+<p>The resulting permutation p-values should also be identical.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>p_oracle <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">abs</span>(T_oracle) <span class="sc">&gt;=</span> <span class="fu">abs</span>(T_oracle[<span class="dv">1</span>])</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>p_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p[</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> p_oracle,</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> p_flipmeta</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  oracle flipmeta 
+    0.25     0.25 </code></pre>
+</div>
+</div>
+</section>
+<section id="numerical-checks" class="level2">
+<h2 class="anchored" data-anchor-id="numerical-checks">Numerical checks</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> r0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                           [,1]
+(Intercept) 0.00000000000508793
+year        0.00000000275213097</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> x_tilde)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                           [,1]
+(Intercept) -0.0000000000325997
+year         0.0000002167071216</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">H_symmetric =</span> <span class="fu">max</span>(<span class="fu">abs</span>(H <span class="sc">-</span> <span class="fu">t</span>(H))),</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">H_idempotent =</span> <span class="fu">max</span>(<span class="fu">abs</span>(H <span class="sc">%*%</span> H <span class="sc">-</span> H)),</span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">P_idempotent =</span> <span class="fu">max</span>(<span class="fu">abs</span>(P <span class="sc">%*%</span> P <span class="sc">-</span> P))</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>         H_symmetric         H_idempotent         P_idempotent 
+0.000000000001643671 0.000000000002902567 0.000000000002902650 </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="fixed-heterogeneity" class="level1">
+<h1>Fixed heterogeneity</h1>
+<p>We now consider a random-effects meta-regression in which <span class="math inline">\(\tau^2\)</span> is fixed to a known value. The previous derivation remains unchanged, except that the weights become</p>
+<p><span class="math display">\[
+w_i = \frac{1}{v_i + \tau^2}.
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>tau2_fixed <span class="ot">&lt;-</span> <span class="fl">0.2</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>    vi,</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> ablat <span class="sc">+</span> year,</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"REML"</span>,</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">tau2 =</span> tau2_fixed</span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient     estimate          se statistic.rma   statistic
+1       0 13     intrcpt -6.864399116 36.49511439    -0.1880909 -0.04335714
+2       1 13       ablat -0.026679483  0.01307842    -2.0399628 -1.75799593
+3       2 13        year  0.003567433  0.01841504     0.1937239  0.05058995
+          score  tau2_null     p
+1   -0.00169802 0.07712811 0.984
+2 -118.57814390 0.26655579 0.370
+3    3.93959113 0.07635469 0.975</code></pre>
+</div>
+</div>
+<section id="score-contributions-1" class="level2">
+<h2 class="anchored" data-anchor-id="score-contributions-1">Score contributions</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> dat<span class="sc">$</span>yi</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> dat<span class="sc">$</span>ablat</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> year, <span class="at">data =</span> dat)</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>w <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (dat<span class="sc">$</span>vi <span class="sc">+</span> tau2_fixed)</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>W <span class="ot">&lt;-</span> <span class="fu">diag</span>(w)</span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-10"><a href="#cb53-10" aria-hidden="true" tabindex="-1"></a>gamma0 <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb53-11"><a href="#cb53-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb53-12"><a href="#cb53-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> y)</span>
+<span id="cb53-13"><a href="#cb53-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-14"><a href="#cb53-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-15"><a href="#cb53-15" aria-hidden="true" tabindex="-1"></a>r0 <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb53-16"><a href="#cb53-16" aria-hidden="true" tabindex="-1"></a>    y <span class="sc">-</span> Z <span class="sc">%*%</span> gamma0</span>
+<span id="cb53-17"><a href="#cb53-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-18"><a href="#cb53-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-19"><a href="#cb53-19" aria-hidden="true" tabindex="-1"></a>gamma_x <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb53-20"><a href="#cb53-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb53-21"><a href="#cb53-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> x)</span>
+<span id="cb53-22"><a href="#cb53-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-23"><a href="#cb53-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-24"><a href="#cb53-24" aria-hidden="true" tabindex="-1"></a>x_tilde <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb53-25"><a href="#cb53-25" aria-hidden="true" tabindex="-1"></a>    x <span class="sc">-</span> Z <span class="sc">%*%</span> gamma_x</span>
+<span id="cb53-26"><a href="#cb53-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb53-27"><a href="#cb53-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-28"><a href="#cb53-28" aria-hidden="true" tabindex="-1"></a>score_contributions <span class="ot">&lt;-</span> x_tilde <span class="sc">*</span> w <span class="sc">*</span> r0</span>
+<span id="cb53-29"><a href="#cb53-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-30"><a href="#cb53-30" aria-hidden="true" tabindex="-1"></a>score_oracle <span class="ot">&lt;-</span> <span class="fu">sum</span>(score_contributions)</span>
+<span id="cb53-31"><a href="#cb53-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-32"><a href="#cb53-32" aria-hidden="true" tabindex="-1"></a>score_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>score[</span>
+<span id="cb53-33"><a href="#cb53-33" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb53-34"><a href="#cb53-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb53-35"><a href="#cb53-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-36"><a href="#cb53-36" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb53-37"><a href="#cb53-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> score_oracle,</span>
+<span id="cb53-38"><a href="#cb53-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> score_flipmeta,</span>
+<span id="cb53-39"><a href="#cb53-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">ratio =</span> score_flipmeta <span class="sc">/</span> score_oracle</span>
+<span id="cb53-40"><a href="#cb53-40" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     oracle    flipmeta       ratio 
+-155.979340 -118.578144    0.760217 </code></pre>
+</div>
+</div>
+</section>
+<section id="standardized-flipped-statistics-1" class="level2">
+<h2 class="anchored" data-anchor-id="standardized-flipped-statistics-1">Standardized flipped statistics</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>sqrtW <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fu">sqrt</span>(w))</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>H <span class="ot">&lt;-</span> sqrtW <span class="sc">%*%</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>    Z <span class="sc">%*%</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">solve</span>(<span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z)) <span class="sc">%*%</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>(Z) <span class="sc">%*%</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    sqrtW</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="fu">diag</span>(k) <span class="sc">-</span> H</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>score_flipped <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>    flips <span class="sc">%*%</span> score_contributions</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>variance_flipped <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(flips))</span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (b <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(flips))) {</span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>    F <span class="ot">&lt;-</span> <span class="fu">diag</span>(flips[b, ])</span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>    variance_flipped[b] <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">t</span>(x) <span class="sc">%*%</span></span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb55-28"><a href="#cb55-28" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb55-29"><a href="#cb55-29" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb55-30"><a href="#cb55-30" aria-hidden="true" tabindex="-1"></a>            x</span>
+<span id="cb55-31"><a href="#cb55-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb55-32"><a href="#cb55-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb55-33"><a href="#cb55-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-34"><a href="#cb55-34" aria-hidden="true" tabindex="-1"></a>T_oracle <span class="ot">&lt;-</span> score_flipped <span class="sc">/</span> <span class="fu">sqrt</span>(variance_flipped)</span>
+<span id="cb55-35"><a href="#cb55-35" aria-hidden="true" tabindex="-1"></a>T_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>]</span>
+<span id="cb55-36"><a href="#cb55-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-37"><a href="#cb55-37" aria-hidden="true" tabindex="-1"></a>ratio <span class="ot">&lt;-</span> T_flipmeta <span class="sc">/</span> T_oracle</span>
+<span id="cb55-38"><a href="#cb55-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-39"><a href="#cb55-39" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.6756138 0.8987540</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.03395338</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>p_oracle <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">abs</span>(T_oracle) <span class="sc">&gt;=</span> <span class="fu">abs</span>(T_oracle[<span class="dv">1</span>])</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>p_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p[</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> p_oracle,</span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> p_flipmeta</span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  oracle flipmeta 
+   0.353    0.370 </code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="heterogeneity-estimated-under-the-null" class="level1">
+<h1>Heterogeneity estimated under the null</h1>
+<p>Finally, we allow <span class="math inline">\(\tau^2\)</span> to be estimated. For the test of <code>ablat</code>, <span class="math inline">\(\tau^2\)</span> is estimated under</p>
+<p><span class="math display">\[
+H_0:\beta_{\mathrm{ablat}}=0,
+\]</span></p>
+<p>so that the null meta-regression contains the intercept and <code>year</code> only.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>fit_rma <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>    vi,</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> ablat <span class="sc">+</span> year,</span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a>fit_fm <span class="ot">&lt;-</span> <span class="fu">flipmeta</span>(</span>
+<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a>    fit_rma,</span>
+<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flips =</span> flips</span>
+<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a>fit_fm<span class="sc">$</span>summary_table</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  .assign  k coefficient     estimate          se statistic.rma   statistic
+1       0 13     intrcpt -3.545505079 29.09587983    -0.1218559 -0.04335714
+2       1 13       ablat -0.028011275  0.01023404    -2.7370689 -1.75799593
+3       2 13        year  0.001907557  0.01468382     0.1299088  0.05058995
+          score  tau2_null     p
+1   -0.00169802 0.07712811 0.984
+2 -118.57814390 0.26655579 0.370
+3    3.93959113 0.07635469 0.975</code></pre>
+</div>
+</div>
+<section id="null-heterogeneity-estimate" class="level2">
+<h2 class="anchored" data-anchor-id="null-heterogeneity-estimate">Null heterogeneity estimate</h2>
+<p>The corresponding null model is fitted explicitly to obtain the oracle value of <span class="math inline">\(\hat{\tau}_0^2\)</span>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>fit_null <span class="ot">&lt;-</span> <span class="fu">rma</span>(</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>    yi,</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>    vi,</span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">mods =</span> <span class="sc">~</span> year,</span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> dat,</span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">"REML"</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a>tau2_null <span class="ot">&lt;-</span> fit_null<span class="sc">$</span>tau2</span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> tau2_null,</span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>tau2_null[</span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>        fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   oracle  flipmeta 
+0.2665558 0.2665558 </code></pre>
+</div>
+</div>
+</section>
+<section id="score-contributions-2" class="level2">
+<h2 class="anchored" data-anchor-id="score-contributions-2">Score contributions</h2>
+<p>Conditional on <span class="math inline">\(\hat{\tau}_0^2\)</span>, the weights are</p>
+<p><span class="math display">\[
+\hat w_{0i}
+=
+\frac{1}{v_i+\hat\tau_0^2}.
+\]</span></p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a>y <span class="ot">&lt;-</span> dat<span class="sc">$</span>yi</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>x <span class="ot">&lt;-</span> dat<span class="sc">$</span>ablat</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">&lt;-</span> <span class="fu">model.matrix</span>(<span class="sc">~</span> year, <span class="at">data =</span> dat)</span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="fu">length</span>(y)</span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a>w <span class="ot">&lt;-</span> <span class="dv">1</span> <span class="sc">/</span> (dat<span class="sc">$</span>vi <span class="sc">+</span> tau2_null)</span>
+<span id="cb65-8"><a href="#cb65-8" aria-hidden="true" tabindex="-1"></a>W <span class="ot">&lt;-</span> <span class="fu">diag</span>(w)</span>
+<span id="cb65-9"><a href="#cb65-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-10"><a href="#cb65-10" aria-hidden="true" tabindex="-1"></a>gamma0 <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb65-11"><a href="#cb65-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb65-12"><a href="#cb65-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> y)</span>
+<span id="cb65-13"><a href="#cb65-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb65-14"><a href="#cb65-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-15"><a href="#cb65-15" aria-hidden="true" tabindex="-1"></a>r0 <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb65-16"><a href="#cb65-16" aria-hidden="true" tabindex="-1"></a>    y <span class="sc">-</span> Z <span class="sc">%*%</span> gamma0</span>
+<span id="cb65-17"><a href="#cb65-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb65-18"><a href="#cb65-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-19"><a href="#cb65-19" aria-hidden="true" tabindex="-1"></a>gamma_x <span class="ot">&lt;-</span> <span class="fu">solve</span>(</span>
+<span id="cb65-20"><a href="#cb65-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z),</span>
+<span id="cb65-21"><a href="#cb65-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> x)</span>
+<span id="cb65-22"><a href="#cb65-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb65-23"><a href="#cb65-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-24"><a href="#cb65-24" aria-hidden="true" tabindex="-1"></a>x_tilde <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb65-25"><a href="#cb65-25" aria-hidden="true" tabindex="-1"></a>    x <span class="sc">-</span> Z <span class="sc">%*%</span> gamma_x</span>
+<span id="cb65-26"><a href="#cb65-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb65-27"><a href="#cb65-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-28"><a href="#cb65-28" aria-hidden="true" tabindex="-1"></a>score_contributions <span class="ot">&lt;-</span> x_tilde <span class="sc">*</span> w <span class="sc">*</span> r0</span>
+<span id="cb65-29"><a href="#cb65-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-30"><a href="#cb65-30" aria-hidden="true" tabindex="-1"></a>score_oracle <span class="ot">&lt;-</span> <span class="fu">sum</span>(score_contributions)</span>
+<span id="cb65-31"><a href="#cb65-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-32"><a href="#cb65-32" aria-hidden="true" tabindex="-1"></a>score_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>score[</span>
+<span id="cb65-33"><a href="#cb65-33" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb65-34"><a href="#cb65-34" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb65-35"><a href="#cb65-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb65-36"><a href="#cb65-36" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb65-37"><a href="#cb65-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> score_oracle,</span>
+<span id="cb65-38"><a href="#cb65-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> score_flipmeta,</span>
+<span id="cb65-39"><a href="#cb65-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">ratio =</span> score_flipmeta <span class="sc">/</span> score_oracle</span>
+<span id="cb65-40"><a href="#cb65-40" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   oracle  flipmeta     ratio 
+-118.5781 -118.5781    1.0000 </code></pre>
+</div>
+</div>
+</section>
+<section id="standardized-flipped-statistics-2" class="level2">
+<h2 class="anchored" data-anchor-id="standardized-flipped-statistics-2">Standardized flipped statistics</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>sqrtW <span class="ot">&lt;-</span> <span class="fu">diag</span>(<span class="fu">sqrt</span>(w))</span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>H <span class="ot">&lt;-</span> sqrtW <span class="sc">%*%</span></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>    Z <span class="sc">%*%</span></span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">solve</span>(<span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> Z)) <span class="sc">%*%</span></span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">t</span>(Z) <span class="sc">%*%</span></span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a>    sqrtW</span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-9"><a href="#cb67-9" aria-hidden="true" tabindex="-1"></a>P <span class="ot">&lt;-</span> <span class="fu">diag</span>(k) <span class="sc">-</span> H</span>
+<span id="cb67-10"><a href="#cb67-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-11"><a href="#cb67-11" aria-hidden="true" tabindex="-1"></a>score_flipped <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb67-12"><a href="#cb67-12" aria-hidden="true" tabindex="-1"></a>    flips <span class="sc">%*%</span> score_contributions</span>
+<span id="cb67-13"><a href="#cb67-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb67-14"><a href="#cb67-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-15"><a href="#cb67-15" aria-hidden="true" tabindex="-1"></a>variance_flipped <span class="ot">&lt;-</span> <span class="fu">numeric</span>(<span class="fu">nrow</span>(flips))</span>
+<span id="cb67-16"><a href="#cb67-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-17"><a href="#cb67-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (b <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(flips))) {</span>
+<span id="cb67-18"><a href="#cb67-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-19"><a href="#cb67-19" aria-hidden="true" tabindex="-1"></a>    F <span class="ot">&lt;-</span> <span class="fu">diag</span>(flips[b, ])</span>
+<span id="cb67-20"><a href="#cb67-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-21"><a href="#cb67-21" aria-hidden="true" tabindex="-1"></a>    variance_flipped[b] <span class="ot">&lt;-</span> <span class="fu">drop</span>(</span>
+<span id="cb67-22"><a href="#cb67-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">t</span>(x) <span class="sc">%*%</span></span>
+<span id="cb67-23"><a href="#cb67-23" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb67-24"><a href="#cb67-24" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb67-25"><a href="#cb67-25" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb67-26"><a href="#cb67-26" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb67-27"><a href="#cb67-27" aria-hidden="true" tabindex="-1"></a>            F <span class="sc">%*%</span></span>
+<span id="cb67-28"><a href="#cb67-28" aria-hidden="true" tabindex="-1"></a>            P <span class="sc">%*%</span></span>
+<span id="cb67-29"><a href="#cb67-29" aria-hidden="true" tabindex="-1"></a>            sqrtW <span class="sc">%*%</span></span>
+<span id="cb67-30"><a href="#cb67-30" aria-hidden="true" tabindex="-1"></a>            x</span>
+<span id="cb67-31"><a href="#cb67-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb67-32"><a href="#cb67-32" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb67-33"><a href="#cb67-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-34"><a href="#cb67-34" aria-hidden="true" tabindex="-1"></a>T_oracle <span class="ot">&lt;-</span> score_flipped <span class="sc">/</span> <span class="fu">sqrt</span>(variance_flipped)</span>
+<span id="cb67-35"><a href="#cb67-35" aria-hidden="true" tabindex="-1"></a>T_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>Tspace[, <span class="st">"ablat"</span>]</span>
+<span id="cb67-36"><a href="#cb67-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-37"><a href="#cb67-37" aria-hidden="true" tabindex="-1"></a>ratio <span class="ot">&lt;-</span> T_flipmeta <span class="sc">/</span> T_oracle</span>
+<span id="cb67-38"><a href="#cb67-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-39"><a href="#cb67-39" aria-hidden="true" tabindex="-1"></a><span class="fu">range</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1 1</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sd</span>(ratio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.00000000001404394</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb71"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a>p_oracle <span class="ot">&lt;-</span> <span class="fu">mean</span>(</span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">abs</span>(T_oracle) <span class="sc">&gt;=</span> <span class="fu">abs</span>(T_oracle[<span class="dv">1</span>])</span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-5"><a href="#cb71-5" aria-hidden="true" tabindex="-1"></a>p_flipmeta <span class="ot">&lt;-</span> fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>p[</span>
+<span id="cb71-6"><a href="#cb71-6" aria-hidden="true" tabindex="-1"></a>    fit_fm<span class="sc">$</span>summary_table<span class="sc">$</span>coefficient <span class="sc">==</span> <span class="st">"ablat"</span></span>
+<span id="cb71-7"><a href="#cb71-7" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb71-8"><a href="#cb71-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-9"><a href="#cb71-9" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb71-10"><a href="#cb71-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">oracle =</span> p_oracle,</span>
+<span id="cb71-11"><a href="#cb71-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">flipmeta =</span> p_flipmeta</span>
+<span id="cb71-12"><a href="#cb71-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  oracle flipmeta 
+    0.37     0.37 </code></pre>
+</div>
+</div>
+</section>
+<section id="numerical-checks-1" class="level2">
+<h2 class="anchored" data-anchor-id="numerical-checks-1">Numerical checks</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb73"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> r0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                             [,1]
+(Intercept) 0.0000000000000865974
+year        0.0000000002237356966</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crossprod</span>(Z, W <span class="sc">%*%</span> x_tilde)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                             [,1]
+(Intercept) -0.000000000008782308
+year        -0.000000018786522560</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">c</span>(</span>
+<span id="cb77-2"><a href="#cb77-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">H_symmetric =</span> <span class="fu">max</span>(<span class="fu">abs</span>(H <span class="sc">-</span> <span class="fu">t</span>(H))),</span>
+<span id="cb77-3"><a href="#cb77-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">H_idempotent =</span> <span class="fu">max</span>(<span class="fu">abs</span>(H <span class="sc">%*%</span> H <span class="sc">-</span> H)),</span>
+<span id="cb77-4"><a href="#cb77-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">P_idempotent =</span> <span class="fu">max</span>(<span class="fu">abs</span>(P <span class="sc">%*%</span> P <span class="sc">-</span> P))</span>
+<span id="cb77-5"><a href="#cb77-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          H_symmetric          H_idempotent          P_idempotent 
+0.0000000000009265921 0.0000000000004153206 0.0000000000004153206 </code></pre>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

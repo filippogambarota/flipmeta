@@ -1,0 +1,585 @@
+---
+title: "Validation of flipmeta"
+format: html
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+library(metafor)
+library(flipscores)
+
+devtools::load_all()
+
+set.seed(2026)
+options(scipen = 999)
+
+dat <- escalc(
+    measure = "RR",
+    ai = tpos,
+    bi = tneg,
+    ci = cpos,
+    di = cneg,
+    data = dat.bcg
+)
+
+dat$vi_equal <- 0.01
+
+flips <- flipscores:::make_flips(
+    nrow(dat),
+    n_flips = 1000
+)
+```
+
+# Equal sampling variances
+
+When all sampling variances are equal and $\tau^2 = 0$, the meta-analytic weight matrix is proportional to the identity matrix. In this case, `flipscores` provides a useful benchmark for the implementation in `flipmeta`.
+
+## Intercept-only model
+
+```{r}
+fit_glm <- glm(
+    yi ~ 1,
+    data = dat
+)
+
+fit_rma <- rma(
+    yi,
+    vi_equal,
+    data = dat,
+    method = "EE"
+)
+
+fit_fs <- flipscores(
+    fit_glm,
+    flips = flips
+)
+
+fit_fm <- flipmeta(
+    fit_rma,
+    flips = flips
+)
+
+fit_fs$summary_table
+fit_fm$summary_table
+```
+
+The two permutation spaces should differ only by a constant scale factor.
+
+```{r}
+ratio <- fit_fm$Tspace[, 1] / fit_fs$Tspace[, 1]
+
+range(ratio)
+sd(ratio)
+
+c(
+    flipscores = fit_fs$summary_table$p,
+    flipmeta = fit_fm$summary_table$p
+)
+```
+
+For the intercept-only model, the difference in scale can also be obtained from the empirical scale used by `flipscores` relative to the known meta-analytic sampling standard deviation.
+
+```{r}
+sqrt(mean(dat$yi^2)) / sqrt(dat$vi_equal[1])
+```
+
+# One moderator
+
+```{r}
+fit_glm <- glm(
+    yi ~ ablat,
+    data = dat
+)
+
+fit_rma <- rma(
+    yi,
+    vi_equal,
+    mods = ~ ablat,
+    data = dat,
+    method = "EE"
+)
+
+fit_fs <- flipscores(
+    fit_glm,
+    flips = flips
+)
+
+fit_fm <- flipmeta(
+    fit_rma,
+    flips = flips
+)
+
+fit_fs$summary_table
+fit_fm$summary_table
+```
+
+The proportionality is checked separately for the intercept and the moderator because each coefficient is tested under a different null model.
+
+```{r}
+ratio_intercept <- fit_fm$Tspace[, "intrcpt"] /
+    fit_fs$Tspace[, "(Intercept)"]
+
+ratio_ablat <- fit_fm$Tspace[, "ablat"] /
+    fit_fs$Tspace[, "ablat"]
+
+c(
+    intercept_min = min(ratio_intercept),
+    intercept_max = max(ratio_intercept),
+    intercept_sd = sd(ratio_intercept)
+)
+
+c(
+    ablat_min = min(ratio_ablat),
+    ablat_max = max(ratio_ablat),
+    ablat_sd = sd(ratio_ablat)
+)
+
+cbind(
+    flipscores = fit_fs$summary_table$p,
+    flipmeta = fit_fm$summary_table$p
+)
+```
+
+# Two moderators
+
+We now test the same equivalence when residualization with respect to nuisance covariates is required. For the test of `ablat`, the nuisance design matrix contains the intercept and `year`.
+
+```{r}
+fit_glm <- glm(
+    yi ~ ablat + year,
+    data = dat
+)
+
+fit_rma <- rma(
+    yi,
+    vi_equal,
+    mods = ~ ablat + year,
+    data = dat,
+    method = "EE"
+)
+
+fit_fs <- flipscores(
+    fit_glm,
+    flips = flips
+)
+
+fit_fm <- flipmeta(
+    fit_rma,
+    flips = flips
+)
+
+fit_fs$summary_table
+fit_fm$summary_table
+```
+
+```{r}
+ratio_ablat <- fit_fm$Tspace[, "ablat"] /
+    fit_fs$Tspace[, "ablat"]
+
+range(ratio_ablat)
+sd(ratio_ablat)
+
+cbind(
+    flipscores = fit_fs$summary_table$p,
+    flipmeta = fit_fm$summary_table$p
+)
+```
+
+# Heterogeneous sampling variances
+
+With heterogeneous sampling variances and $\tau^2 = 0$,
+
+$$
+\operatorname{Var}(y_i) = v_i
+$$
+
+and therefore
+
+$$
+W = \operatorname{diag}(1/v_i).
+$$
+
+A weighted Gaussian GLM does not provide the same direct benchmark for the sign-flipping standardization. We therefore compare `flipmeta` directly with the analytical expressions obtained by specializing the score sign-flipping test to the meta-regression model.
+
+We consider `ablat` as the focal moderator and `year` as a nuisance moderator.
+
+```{r}
+fit_rma <- rma(
+    yi,
+    vi,
+    mods = ~ ablat + year,
+    data = dat,
+    method = "EE"
+)
+
+fit_fm <- flipmeta(
+    fit_rma,
+    flips = flips
+)
+
+fit_fm$summary_table
+```
+
+## Score contributions
+
+Let $x$ denote the focal moderator and $Z$ the nuisance design matrix. Under $H_0:\beta_x=0$,
+
+$$
+\hat\gamma_0 =
+(Z^\top WZ)^{-1} Z^\top Wy
+$$
+
+and
+
+$$
+r_0 = y-Z\hat\gamma_0.
+$$
+
+The focal predictor is residualized with respect to the nuisance covariates as
+
+$$
+\tilde{x}
+=
+x-Z(Z^\top WZ)^{-1}Z^\top Wx.
+$$
+
+The individual score contributions are then
+
+$$
+\nu_i = \tilde{x}_i w_i r_{0i}.
+$$
+
+```{r}
+y <- dat$yi
+x <- dat$ablat
+Z <- model.matrix(~ year, data = dat)
+
+k <- length(y)
+
+w <- 1 / dat$vi
+W <- diag(w)
+
+gamma0 <- solve(
+    crossprod(Z, W %*% Z),
+    crossprod(Z, W %*% y)
+)
+
+r0 <- drop(
+    y - Z %*% gamma0
+)
+
+gamma_x <- solve(
+    crossprod(Z, W %*% Z),
+    crossprod(Z, W %*% x)
+)
+
+x_tilde <- drop(
+    x - Z %*% gamma_x
+)
+
+score_contributions <- x_tilde * w * r0
+
+score_oracle <- sum(score_contributions)
+
+score_flipmeta <- fit_fm$summary_table$score[
+    fit_fm$summary_table$coefficient == "ablat"
+]
+
+c(
+    oracle = score_oracle,
+    flipmeta = score_flipmeta,
+    ratio = score_flipmeta / score_oracle
+)
+```
+
+## Standardized flipped statistics
+
+Define
+
+$$
+H =
+W^{1/2}Z
+(Z^\top WZ)^{-1}
+Z^\top W^{1/2}
+$$
+
+and
+
+$$
+P=I-H.
+$$
+
+For flip $b$, the flipped score is
+
+$$
+S_b = \sum_i f_{bi}\nu_i,
+$$
+
+and the flip-specific variance term is
+
+$$
+C_b =
+x^\top
+W^{1/2}
+P F_b P F_b P
+W^{1/2}x.
+$$
+
+The standardized statistic is
+
+$$
+T_b = \frac{S_b}{\sqrt{C_b}}.
+$$
+
+```{r}
+sqrtW <- diag(sqrt(w))
+
+H <- sqrtW %*%
+    Z %*%
+    solve(crossprod(Z, W %*% Z)) %*%
+    t(Z) %*%
+    sqrtW
+
+P <- diag(k) - H
+
+score_flipped <- drop(
+    flips %*% score_contributions
+)
+
+variance_flipped <- numeric(nrow(flips))
+
+for (b in seq_len(nrow(flips))) {
+
+    F <- diag(flips[b, ])
+
+    variance_flipped[b] <- drop(
+        t(x) %*%
+            sqrtW %*%
+            P %*%
+            F %*%
+            P %*%
+            F %*%
+            P %*%
+            sqrtW %*%
+            x
+    )
+}
+
+T_oracle <- score_flipped / sqrt(variance_flipped)
+T_flipmeta <- fit_fm$Tspace[, "ablat"]
+
+ratio <- T_flipmeta / T_oracle
+
+range(ratio)
+sd(ratio)
+```
+
+```{r}
+p_oracle <- mean(
+    abs(T_oracle) >= abs(T_oracle[1])
+)
+
+p_flipmeta <- fit_fm$summary_table$p[
+    fit_fm$summary_table$coefficient == "ablat"
+]
+
+c(
+    oracle = p_oracle,
+    flipmeta = p_flipmeta
+)
+```
+
+## Numerical checks
+
+```{r}
+crossprod(Z, W %*% r0)
+
+crossprod(Z, W %*% x_tilde)
+
+c(
+    H_symmetric = max(abs(H - t(H))),
+    H_idempotent = max(abs(H %*% H - H)),
+    P_idempotent = max(abs(P %*% P - P))
+)
+```
+
+# Heterogeneity estimated under the null
+
+For a random-effects meta-regression, $\tau^2$ is treated as a nuisance parameter and is estimated under the coefficient-specific null hypothesis.
+
+For the test of `ablat`,
+
+$$
+H_0:\beta_{\mathrm{ablat}}=0,
+$$
+
+so that the null model contains the intercept and `year` only.
+
+```{r}
+fit_rma <- rma(
+    yi,
+    vi,
+    mods = ~ ablat + year,
+    data = dat,
+    method = "REML"
+)
+
+fit_fm <- flipmeta(
+    fit_rma,
+    flips = flips
+)
+
+fit_fm$summary_table
+```
+
+## Null heterogeneity estimate
+
+The null model is fitted explicitly to obtain the oracle value of $\hat\tau_0^2$.
+
+```{r}
+fit_null <- rma(
+    yi,
+    vi,
+    mods = ~ year,
+    data = dat,
+    method = "REML"
+)
+
+tau2_null <- fit_null$tau2
+
+c(
+    oracle = tau2_null,
+    flipmeta = fit_fm$summary_table$tau2_null[
+        fit_fm$summary_table$coefficient == "ablat"
+    ]
+)
+```
+
+## Score contributions
+
+Conditional on $\hat\tau_0^2$, the weights are
+
+$$
+\hat w_{0i}
+=
+\frac{1}{v_i+\hat\tau_0^2}.
+$$
+
+```{r}
+y <- dat$yi
+x <- dat$ablat
+Z <- model.matrix(~ year, data = dat)
+
+k <- length(y)
+
+w <- 1 / (dat$vi + tau2_null)
+W <- diag(w)
+
+gamma0 <- solve(
+    crossprod(Z, W %*% Z),
+    crossprod(Z, W %*% y)
+)
+
+r0 <- drop(
+    y - Z %*% gamma0
+)
+
+gamma_x <- solve(
+    crossprod(Z, W %*% Z),
+    crossprod(Z, W %*% x)
+)
+
+x_tilde <- drop(
+    x - Z %*% gamma_x
+)
+
+score_contributions <- x_tilde * w * r0
+
+score_oracle <- sum(score_contributions)
+
+score_flipmeta <- fit_fm$summary_table$score[
+    fit_fm$summary_table$coefficient == "ablat"
+]
+
+c(
+    oracle = score_oracle,
+    flipmeta = score_flipmeta,
+    ratio = score_flipmeta / score_oracle
+)
+```
+
+## Standardized flipped statistics
+
+```{r}
+sqrtW <- diag(sqrt(w))
+
+H <- sqrtW %*%
+    Z %*%
+    solve(crossprod(Z, W %*% Z)) %*%
+    t(Z) %*%
+    sqrtW
+
+P <- diag(k) - H
+
+score_flipped <- drop(
+    flips %*% score_contributions
+)
+
+variance_flipped <- numeric(nrow(flips))
+
+for (b in seq_len(nrow(flips))) {
+
+    F <- diag(flips[b, ])
+
+    variance_flipped[b] <- drop(
+        t(x) %*%
+            sqrtW %*%
+            P %*%
+            F %*%
+            P %*%
+            F %*%
+            P %*%
+            sqrtW %*%
+            x
+    )
+}
+
+T_oracle <- score_flipped / sqrt(variance_flipped)
+T_flipmeta <- fit_fm$Tspace[, "ablat"]
+
+ratio <- T_flipmeta / T_oracle
+
+range(ratio)
+sd(ratio)
+```
+
+```{r}
+p_oracle <- mean(
+    abs(T_oracle) >= abs(T_oracle[1])
+)
+
+p_flipmeta <- fit_fm$summary_table$p[
+    fit_fm$summary_table$coefficient == "ablat"
+]
+
+c(
+    oracle = p_oracle,
+    flipmeta = p_flipmeta
+)
+```
+
+## Numerical checks
+
+```{r}
+crossprod(Z, W %*% r0)
+
+crossprod(Z, W %*% x_tilde)
+
+c(
+    H_symmetric = max(abs(H - t(H))),
+    H_idempotent = max(abs(H %*% H - H)),
+    P_idempotent = max(abs(P %*% P - P))
+)
+```

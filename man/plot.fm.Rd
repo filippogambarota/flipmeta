@@ -11,7 +11,7 @@
   color = "coefficient",
   coef = NULL,
   base_size = 15,
-  adjusted = TRUE,
+  adjusted = NULL,
   transf.p = "raw",
   ...
 )
@@ -22,7 +22,7 @@
   color = "coefficient",
   coef = NULL,
   base_size = 15,
-  adjusted = TRUE,
+  adjusted = NULL,
   transf.p = "raw",
   ...
 )
@@ -33,6 +33,8 @@
 \item{xvar}{Character scalar naming the column mapped to the x-axis.}
 
 \item{color}{Character scalar naming the column mapped to point color.}
+
+\item{coef}{Optional character vector selecting coefficients to plot.}
 
 \item{base_size}{Positive numeric base font size passed to
 \code{\link[ggplot2:theme_bw]{ggplot2::theme_bw()}}.}

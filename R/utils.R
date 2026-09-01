@@ -3,6 +3,7 @@
                                 X,
                                 j,
                                 method = "REML",
+                                tau2 = NULL,
                                 interval = c(0, 1000),
                                 tol = .Machine$double.eps^0.25) {
 
@@ -24,13 +25,28 @@
 
     if (ncol(Z) == 0L) {
 
-        tau2_0 <- .tau2_h0_mu0(
-            yi = yi_vec,
-            vi = vi_vec,
-            method = if (method %in% c("DL", "EE")) method else "ML",
-            interval = interval,
-            tol = tol
-        )
+        tau2_0 <- if (is.null(tau2)) {
+            # Once the tested coefficient is removed, no fixed-effect
+            # parameters remain. The REML correction is therefore absent and
+            # the restricted likelihood coincides with the ML likelihood.
+            null_method <- if (method == "FE") {
+                "EE"
+            } else if (method %in% c("DL", "EE")) {
+                method
+            } else {
+                "ML"
+            }
+
+            .tau2_h0_mu0(
+                yi = yi_vec,
+                vi = vi_vec,
+                method = null_method,
+                interval = interval,
+                tol = tol
+            )
+        } else {
+            as.numeric(tau2)
+        }
 
         beta0 <- numeric(0)
         mu0   <- rep(0, k)
@@ -40,13 +56,17 @@
 
     } else {
 
-        fit0 <- metafor::rma.uni(
+        fit_args <- list(
             yi = yi_vec,
             vi = vi_vec,
             mods = Z,
             intercept = FALSE,
             method = method
         )
+        if (!is.null(tau2)) {
+            fit_args$tau2 <- as.numeric(tau2)
+        }
+        fit0 <- do.call(metafor::rma.uni, fit_args)
 
         tau2_0 <- fit0$tau2
         beta0  <- as.numeric(fit0$beta)
@@ -129,7 +149,14 @@
         V[b] <- drop(crossprod(fpx, P %*% fpx))
     }
 
-    V[V < tol] <- NA_real_
+    invalid_variance <- !is.finite(V) | V < tol
+    if (any(invalid_variance)) {
+        stop(
+            "At least one flip-specific variance is zero or numerically degenerate; ",
+            "the standardized sign-flip statistic is undefined.",
+            call. = FALSE
+        )
+    }
 
     Sstd <- S / sqrt(V)
 
@@ -180,7 +207,7 @@
 
 .tau2_h0_mu0 <- function(yi,
                          vi,
-                         method = c("REML", "ML", "DL", "EE"),
+                         method = c("ML", "DL", "EE"),
                          interval = c(0, 1000),
                          tol = .Machine$double.eps^0.25) {
 
@@ -700,6 +727,6 @@ transf_p <- function(p, method = "raw") {
         method,
         "raw" = p,
         "-log10" = -log10(p),
-        "z" = qnorm(p / 2, lower.tail = FALSE)
+        "z" = stats::qnorm(p / 2, lower.tail = FALSE)
     )
 }

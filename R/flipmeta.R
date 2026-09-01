@@ -20,6 +20,15 @@
 #' reordered. The `id` argument is not used for a single model because no
 #' cross-model alignment is required.
 #'
+#' If the input model was fitted with a fixed `tau2`, that value is retained in
+#' every coefficient-specific null model when `method` is omitted or matches
+#' the input model's method. Supplying a different `method` requests a refit and
+#' does not retain the fixed value (`"EE"` fixes it at zero).
+#'
+#' The standardized statistic is undefined when any flip-specific variance is
+#' zero or numerically degenerate; in that case `flipmeta()` reports an error
+#' instead of silently removing the affected flips.
+#'
 #' For specifications obtained by selecting studies from a common master data
 #' set, create the identifier before filtering and retain it in every model's
 #' data. For example, use `flipmeta(fits, id = "study_id")`.
@@ -113,7 +122,7 @@ flipmeta <- function(
     control_values <- .flipmeta_control(control)
     method <- .flipmeta_match_method(method)
 
-    if (is.list(fit) && !inherits(fit, "rma")) {
+    if (is.list(fit) && !is.object(fit)) {
         if (is.null(id)) {
             stop("'id' must be supplied when 'fit' is a list of models.")
         }
@@ -162,6 +171,14 @@ flipmeta <- function(
     method_requested <- .flipmeta_match_method(method)
     method <- if (is.null(method_requested)) fit$method else method_requested
     rma <- fit
+
+    fixed_tau2 <- NULL
+    if (
+        isTRUE(fit$tau2.fix) &&
+        (is.null(method_requested) || identical(method_requested, fit$method))
+    ) {
+        fixed_tau2 <- as.numeric(fit$tau2)
+    }
 
     yi <- as.numeric(fit$yi)
     vi <- as.numeric(fit$vi)
@@ -264,6 +281,7 @@ flipmeta <- function(
             X = X,
             j = j,
             method = method,
+            tau2 = fixed_tau2,
             interval = interval,
             tol = tol
         )

@@ -87,6 +87,15 @@ identifier must be globally unique before the data are filtered or
 reordered. The \code{id} argument is not used for a single model because no
 cross-model alignment is required.
 
+If the input model was fitted with a fixed \code{tau2}, that value is retained in
+every coefficient-specific null model when \code{method} is omitted or matches
+the input model's method. Supplying a different \code{method} requests a refit and
+does not retain the fixed value (\code{"EE"} fixes it at zero).
+
+The standardized statistic is undefined when any flip-specific variance is
+zero or numerically degenerate; in that case \code{flipmeta()} reports an error
+instead of silently removing the affected flips.
+
 For specifications obtained by selecting studies from a common master data
 set, create the identifier before filtering and retain it in every model's
 data. For example, use \code{flipmeta(fits, id = "study_id")}.

@@ -1,6 +1,6 @@
 #' Plot a Specification Curve
 #'
-#' Creates a specification curve plot for an object of class `flm`.
+#' Creates a specification curve plot for an object of class `fml`.
 #' Specifications are ordered by their estimated effect and displayed together
 #' with the number of observations or studies included in each specification
 #' and the analytic choices defining each scenario.
@@ -44,9 +44,34 @@ spec_curve <- function(x,
     if (!inherits(x, "fml")) {
         stop("`x` must be an object of class 'fml'.", call. = FALSE)
     }
+    wrap_width <- .validate_positive_integer(wrap_width, "wrap_width")
     data <- x$summary_table
 
+    required <- c("coefficient", "estimate", "k", "p", "p.adj")
+    missing_required <- setdiff(required, names(data))
+    if (length(missing_required) > 0L) {
+        if ("p.adj" %in% missing_required) {
+            stop("Adjusted p-values are required; run p.adjust(x) first.", call. = FALSE)
+        }
+        stop(
+            "The result table is missing required column(s): ",
+            paste(missing_required, collapse = ", "),
+            call. = FALSE
+        )
+    }
+
     if (!is.null(coef)) {
+        if (!is.character(coef) || length(coef) < 1L || anyNA(coef)) {
+            stop("`coef` must be NULL or a non-missing character vector.", call. = FALSE)
+        }
+        unknown_coef <- setdiff(coef, data$coefficient)
+        if (length(unknown_coef) > 0L) {
+            stop(
+                "Unknown coefficient(s): ",
+                paste(unknown_coef, collapse = ", "),
+                call. = FALSE
+            )
+        }
         data <- data[data$coefficient %in% coef, ]
     }
 
@@ -91,11 +116,11 @@ spec_curve <- function(x,
     top <- ggplot2::ggplot(
         data,
         ggplot2::aes(
-            x = .spec_id,
-            y = estimate,
-            color = .sign,
-            shape = .sign,
-            size = .sign
+            x = .data$.spec_id,
+            y = .data$estimate,
+            color = .data$.sign,
+            shape = .data$.sign,
+            size = .data$.sign
         )
     ) +
         ggplot2::geom_point() +
@@ -114,17 +139,17 @@ spec_curve <- function(x,
             name = NULL,
             values = sizes
         ) +
-        ggtitle(sprintf("Specification Curve with %s scenarios", nrow(data)))
+        ggplot2::ggtitle(sprintf("Specification Curve with %s scenarios", nrow(data)))
 
     kplot <- ggplot2::ggplot(
         data,
-        ggplot2::aes(x = .spec_id)
+        ggplot2::aes(x = .data$.spec_id)
     ) +
         ggplot2::geom_segment(
             ggplot2::aes(
-                xend = .spec_id,
+                xend = .data$.spec_id,
                 y = 0,
-                yend = k
+                yend = .data$k
             ),
             linewidth = 2
         ) +
@@ -142,73 +167,76 @@ spec_curve <- function(x,
             panel.grid = ggplot2::element_blank()
         )
 
-    long <- reshape(
-        data,
-        varying = x$extra_cols,
-        v.names = "value",
-        timevar = "name",
-        times = x$extra_cols,
-        direction = "long"
-    )
+    plots <- list(top, kplot)
+    heights <- c(0.8, 0.2)
 
-    rownames(long) <- NULL
-
-    bottom <- ggplot2::ggplot(
-        long,
-        ggplot2::aes(
-            x = .spec_id,
-            y = value,
-            color = .sign
+    if (length(x$extra_cols) > 0L) {
+        long <- stats::reshape(
+            data,
+            varying = x$extra_cols,
+            v.names = "value",
+            timevar = "name",
+            times = x$extra_cols,
+            direction = "long"
         )
-    ) +
-        ggplot2::facet_grid(
-            name ~ .,
-            scales = "free_y",
-            space = "free_y",
-            labeller = ggplot2::labeller(
-                name = function(x) {
-                    .base_wrap(x, width = wrap_width)
-                }
+
+        rownames(long) <- NULL
+
+        bottom <- ggplot2::ggplot(
+            long,
+            ggplot2::aes(
+                x = .data$.spec_id,
+                y = .data$value,
+                color = .data$.sign
             )
         ) +
-        ggplot2::geom_point(
-            shape = 124,
-            size = 3.35
-        ) +
-        ggplot2::scale_color_manual(
-            name = NULL,
-            values = cols
-        ) +
-        ggplot2::guides(
-            color = "none"
-        ) +
-        ggplot2::scale_y_discrete(
-            expand = ggplot2::expansion(add = 0.25)
-        ) +
-        ggplot2::xlab("Specifications") +
-        ggplot2::theme_minimal() +
-        ggplot2::theme(
-            axis.title.y = ggplot2::element_blank(),
+            ggplot2::facet_grid(
+                name ~ .,
+                scales = "free_y",
+                space = "free_y",
+                labeller = ggplot2::labeller(
+                    name = function(x) {
+                        .base_wrap(x, width = wrap_width)
+                    }
+                )
+            ) +
+            ggplot2::geom_point(
+                shape = 124,
+                size = 3.35
+            ) +
+            ggplot2::scale_color_manual(
+                name = NULL,
+                values = cols
+            ) +
+            ggplot2::guides(
+                color = "none"
+            ) +
+            ggplot2::scale_y_discrete(
+                expand = ggplot2::expansion(add = 0.25)
+            ) +
+            ggplot2::xlab("Specifications") +
+            ggplot2::theme_minimal() +
+            ggplot2::theme(
+                axis.title.y = ggplot2::element_blank(),
+                panel.spacing.y = grid::unit(0.75, "lines"),
+                strip.text.y.right = ggplot2::element_text(
+                    angle = 0,
+                    hjust = 0,
+                    margin = ggplot2::margin(0, 0, 0, 2)
+                ),
+                panel.grid.minor.x = ggplot2::element_blank(),
+                panel.grid.major.x = ggplot2::element_blank(),
+                strip.text.y = ggplot2::element_text(face = "bold")
+            )
 
-            panel.spacing.y = grid::unit(0.75, "lines"),
-
-            strip.text.y.right = ggplot2::element_text(
-                angle = 0,
-                hjust = 0,
-                margin = ggplot2::margin(0, 0, 0, 2)
-            ),
-
-            panel.grid.minor.x = ggplot2::element_blank(),
-            panel.grid.major.x = ggplot2::element_blank(),
-            strip.text.y = element_text(face = "bold")
-        )
+        plots <- c(plots, list(bottom))
+        heights <- c(0.2, 0.05, 0.75)
+    }
 
     patchwork::wrap_plots(
-        top,
-        kplot,
-        bottom,
+        plots,
         ncol = 1,
-        heights = c(0.2, 0.05, 0.75),
+        heights = heights,
         guides = "collect",
         axes = "collect"
     ) &

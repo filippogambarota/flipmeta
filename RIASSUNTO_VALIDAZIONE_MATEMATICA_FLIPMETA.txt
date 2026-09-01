@@ -1,0 +1,322 @@
+RIASSUNTO DELLA DISCUSSIONE SULLA VALIDAZIONE MATEMATICA DI FLIPMETA
+===================================================================
+
+Contesto e obiettivo
+--------------------
+
+Il pacchetto flipmeta implementa un test basato sul sign flipping degli score
+per meta-analisi e meta-regressioni. Il calcolo degli score, della loro
+standardizzazione e della combinazione fra più modelli non viene delegato
+direttamente al pacchetto flipscores. L'obiettivo è quindi verificare che
+l'implementazione di flipmeta corrisponda davvero alle formule matematiche dei
+paper e costruire successivamente una suite di test affidabile.
+
+Per il momento si è deciso di NON usare simulazioni. La prima fase sarà una
+validazione deterministica e matematica, equazione per equazione. Le simulazioni
+potranno essere considerate in seguito per studiare proprietà statistiche come
+livello del test e potenza, ma non sono lo strumento principale per stabilire se
+le formule sono state programmate correttamente.
+
+
+Fonti considerate
+------------------
+
+Sono stati esaminati i paper presenti nella cartella Drive, in particolare i
+lavori sullo score sign flipping, sulla standardizzazione flip-specifica, su
+PIMA e sulle procedure di multiple testing, oltre ai pacchetti GitHub
+flipscores e flip.
+
+flipscores è utile come implementazione di riferimento in alcuni casi
+particolari. Non può però essere considerato automaticamente un oracolo per
+ogni meta-analisi, perché le formule dei paper sono spesso presentate nel
+linguaggio generale dei GLM, mentre flipmeta lavora con effect size aventi
+varianze campionarie note e, eventualmente, eterogeneità tra studi.
+
+
+Modello meta-analitico
+----------------------
+
+Il modello considerato è
+
+    y_i = beta * x_i + z_i' * gamma + epsilon_i,
+
+con
+
+    epsilon_i ~ N(0, v_i + tau^2).
+
+Qui:
+
+    y_i     = effect size osservato nello studio i;
+    v_i     = varianza campionaria nota dell'effect size;
+    tau^2   = eterogeneità tra studi;
+    x_i     = moderatore o variabile di interesse;
+    beta    = coefficiente da testare;
+    z_i     = nuisance covariates;
+    gamma   = relativi coefficienti nuisance.
+
+L'ipotesi nulla è H0: beta = 0. Tau^2, quando non viene fissato, deve essere
+stimato sotto il modello nullo. Indichiamo questa stima con tau0^2.
+
+
+Perché la matrice W è fondamentale
+----------------------------------
+
+Nel modello nullo la matrice dei pesi è
+
+    W0 = diag(1 / (v_i + tau0^2)).
+
+Questa è l'inversa della matrice di covarianza marginale degli effect size.
+
+Anche fissando tau^2 = 0, non si ottiene generalmente W = I. Si ottiene
+
+    W = diag(1 / v_i).
+
+Quindi il modello rimane una regressione normale eteroschedastica con varianze
+note. Soltanto se tutte le varianze v_i sono uguali si ha
+
+    W = c * I,
+
+dove c è uno scalare comune. In quest'ultimo caso lo scalare tende a cancellarsi
+nello score standardizzato e il problema diventa direttamente confrontabile
+con un modello lineare normale omoschedastico.
+
+Se invece le v_i sono diverse, un GLM normale non pesato e una meta-regressione
+non calcolano lo stesso score. Un eventuale confronto con flipscores è valido
+solo se anche flipscores rappresenta esattamente la stessa matrice di
+covarianza o lo stesso sistema di pesi.
+
+W entra in almeno tre passaggi:
+
+1. nella stima dei coefficienti nuisance sotto H0;
+2. nella residualizzazione del moderatore x rispetto a Z;
+3. nella costruzione dei contributi individuali allo score.
+
+Non è quindi sufficiente introdurre i pesi solamente alla fine del calcolo.
+
+
+Specializzazione delle formule dei paper alla meta-analisi
+----------------------------------------------------------
+
+Sia Z la matrice delle nuisance covariates. Sotto H0 si stima
+
+    gamma0_hat = (Z' W Z)^(-1) Z' W y
+
+e si calcolano i residui nulli
+
+    r0 = y - Z gamma0_hat.
+
+Il moderatore x viene residualizzato rispetto a Z usando la metrica definita
+da W:
+
+    x_tilde = x - Z (Z' W Z)^(-1) Z' W x.
+
+Il contributo allo score dello studio i è quindi
+
+    nu_i = x_tilde_i * w_i * r0_i,
+
+dove
+
+    w_i = 1 / (v_i + tau0^2).
+
+Data una configurazione di segni f_bi, lo score flipped è
+
+    S_b = somma_i f_bi * nu_i.
+
+La formulazione matriciale equivalente usa
+
+    H_Z = W^(1/2) Z (Z' W Z)^(-1) Z' W^(1/2)
+    P   = I - H_Z.
+
+Ponendo F_b = diag(f_b), la varianza flip-specifica è
+
+    C_b = x' W^(1/2) P F_b P F_b P W^(1/2) x
+
+e lo score standardizzato è
+
+    T_b = S_b / sqrt(C_b).
+
+Il p-value bilaterale Monte Carlo è
+
+    p = media_b [ |T_b| >= |T_1| ],
+
+dove la prima configurazione deve rappresentare i dati non trasformati, cioè
+tutti i segni uguali a +1.
+
+I fattori globali legati al numero di studi che compaiono in alcune versioni
+delle formule possono essere omessi contemporaneamente dal numeratore e dalla
+varianza, perché si cancellano nello score standardizzato. Occorre tuttavia
+verificare che ciò avvenga in maniera coerente.
+
+
+Ruolo di tau^2
+--------------
+
+Tau^2 non è soltanto una costante di scala. Poiché i pesi sono
+
+    1 / (v_i + tau^2),
+
+cambiare tau^2 modifica in generale i pesi relativi attribuiti agli studi.
+Quindi può modificare la stima nulla, la residualizzazione di x, i contributi
+allo score e il test finale.
+
+Nel modello normale i parametri della media e il parametro di varianza tau^2
+sono ortogonali in termini di informazione attesa. Per questo lo score di beta
+non deve essere residualizzato anche rispetto allo score di tau^2. Tau^2 deve
+però essere stimato sotto H0 e inserito correttamente in W.
+
+È opportuno verificare separatamente ciascun metodo usato per tau^2:
+
+    EE:   tau0^2 deve essere esattamente zero;
+    DL:   confronto con la formula esplicita di DerSimonian-Laird;
+    ML:   confronto con la minimizzazione esplicita della likelihood nulla;
+    REML: confronto con un riferimento affidabile, ad esempio metafor, quando
+          nel modello nullo rimangono coefficienti nuisance.
+
+Va inoltre chiarito e testato il comportamento voluto nei casi in cui il test
+riguarda l'intercetta e non resta una matrice Z di nuisance covariates.
+
+
+Strategia proposta per i test matematici
+----------------------------------------
+
+La strategia è costruire nei test un piccolo "oracolo matematico" indipendente
+dal codice di produzione. L'oracolo deve tradurre letteralmente le formule
+matriciali, usando soltanto operazioni di algebra lineare di base e senza
+richiamare le funzioni interne di flipmeta.
+
+Per dataset piccoli, deterministici e con matrici di flip definite
+esplicitamente, si confronteranno separatamente:
+
+    1. tau0^2 e la matrice W;
+    2. gamma0_hat e i residui r0;
+    3. x_tilde e i contributi nu_i;
+    4. gli score non standardizzati S_b;
+    5. le varianze flip-specifiche C_b;
+    6. gli score standardizzati T_b;
+    7. il p-value finale.
+
+Confrontare soltanto il p-value non è sufficiente: errori diversi potrebbero
+compensarsi. Il confronto degli oggetti intermedi permette di localizzare con
+precisione l'eventuale divergenza dalla teoria.
+
+Per evitare che l'oracolo replichi inconsapevolmente lo stesso errore del codice
+di produzione, sono previsti tre livelli complementari di verifica.
+
+A. Caso senza nuisance covariates
+
+    P = I
+    x_tilde = x
+    nu_i = x_i * w_i * y_i, con residuo definito dal relativo modello nullo.
+
+In questo caso la varianza standardizzante deve risultare costante rispetto ai
+flip, perché F_b^2 = I. È un controllo semplice ma molto diagnostico.
+
+B. Caso con sola intercetta nuisance
+
+Le quantità si possono calcolare tramite medie pesate:
+
+    y_bar_w = somma(w_i y_i) / somma(w_i)
+    x_bar_w = somma(w_i x_i) / somma(w_i)
+
+e quindi
+
+    r0_i      = y_i - y_bar_w
+    x_tilde_i = x_i - x_bar_w
+    nu_i      = (x_i - x_bar_w) * w_i * (y_i - y_bar_w).
+
+Questo fornisce una seconda derivazione, più semplice della formula matriciale.
+
+C. Caso con più nuisance covariates
+
+Si usa direttamente l'oracolo matriciale completo con Z, W, H_Z e P. Questo
+controlla il caso generale.
+
+Nel caso speciale tau^2 = 0 e varianze tutte uguali, i risultati possono essere
+confrontati anche con flipscores. È accettabile che gli score standardizzati
+differiscano per una costante globale dovuta a convenzioni di dispersione, a
+condizione che tale proporzionalità sia dimostrata e che ordinamento dei test e
+p-value coincidano.
+
+
+Verifiche preliminari già effettuate
+------------------------------------
+
+È già stato eseguito un controllo diagnostico indipendente, senza modificare i
+file del pacchetto. Per i metodi REML, ML, DL ed EE, il calcolo matriciale
+separato ha riprodotto gli score, il T-space e i p-value prodotti
+dall'implementazione corrente con differenze numeriche circa dell'ordine di
+10^(-15).
+
+Nel caso EE con pesi uguali, i contributi allo score di flipmeta hanno coinciso
+con quelli di flipscores entro circa 10^(-15), e i p-value sono risultati
+identici. I T-space differivano soltanto per uno stesso moltiplicatore globale,
+attribuibile alla convenzione usata per la dispersione; pertanto, in quel caso,
+le due procedure sono inferenzialmente equivalenti.
+
+Questi risultati sono incoraggianti, ma non sostituiscono ancora una suite di
+test permanente e leggibile.
+
+
+Validazione di più modelli e PIMA
+---------------------------------
+
+La parte multivariata o multiverse deve essere affrontata soltanto dopo aver
+validato completamente il singolo modello. Successivamente andranno testate le
+seguenti proprietà:
+
+    - lo stesso studio deve ricevere lo stesso segno in tutti i modelli;
+    - il risultato deve essere invariante all'ordine delle righe;
+    - uno studio assente da un modello deve contribuire zero a quel modello;
+    - il T-space congiunto deve essere uguale alla concatenazione dei T-space
+      dei singoli modelli quando vengono usati gli stessi flip per ID;
+    - maxT e le altre correzioni multiple devono essere riprodotte manualmente
+      partendo da un T-space sintetico noto.
+
+Un punto teorico da trattare esplicitamente è che alcune dimostrazioni di PIMA
+partono dal caso in cui tutti i modelli contengono le stesse osservazioni.
+flipmeta permette invece modelli con sottoinsiemi differenti di studi,
+allineandoli tramite un universo comune di ID e assegnando contributo zero agli
+studi assenti. Questa estensione deve essere giustificata e testata
+separatamente, senza assumerla automaticamente dalle formule del caso comune.
+
+
+Questioni tecniche aperte
+-------------------------
+
+1. Quando una varianza flip-specifica è numericamente nulla, il codice corrente
+   la converte in NA e calcola il p-value con na.rm = TRUE. Questo modifica il
+   denominatore Monte Carlo. Occorre stabilire una regola matematica esplicita:
+   errore, gestione documentata del caso degenere oppure altra soluzione.
+
+2. Bisogna stabilire con precisione quali convenzioni di scala sono irrilevanti
+   perché si cancellano in T_b e quali, invece, cambiano effettivamente il test.
+
+3. Il comportamento di ML e REML nei casi privi di nuisance covariates deve
+   essere definito e documentato.
+
+4. La validazione matematica del singolo modello deve restare separata dai bug
+   software non matematici già osservati in funzioni di join e plotting.
+
+
+Ordine operativo consigliatonon
+----------------------------
+
+Quando si passerà all'implementazione della suite, l'ordine suggerito è:
+
+    1. test della stima nulla e di tau0^2;
+    2. test di W, residui, residualizzazione di x e nu_i;
+    3. test di S_b e C_b per flip espliciti;
+    4. test di T_b e del p-value;
+    5. confronti nei casi speciali con flipscores e/o metafor;
+    6. test dell'allineamento per ID e della combinazione dei modelli;
+    7. test manuali di maxT e delle correzioni multiple.
+
+La conclusione principale è che le formule GLM dei paper possono essere usate,
+ma devono essere specializzate alla meta-regressione ponendo
+
+    V0 = diag(v_i + tau0^2)
+    W0 = V0^(-1).
+
+La validazione non deve quindi chiedere semplicemente se flipmeta riproduce un
+GLM, ma se riproduce lo score efficiente e la standardizzazione flip-specifica
+del corretto modello normale meta-analitico con varianze note.

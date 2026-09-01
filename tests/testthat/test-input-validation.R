@@ -93,3 +93,46 @@ test_that("extra requires exactly one row per model", {
         "reserved"
     )
 })
+
+test_that("model class, method, and numerical controls are validated", {
+    fit <- make_validation_fit()
+
+    expect_error(flipmeta::flipmeta(stats::lm(mpg ~ wt, data = mtcars)), "rma")
+    expect_error(flipmeta::flipmeta(fit, method = "unknown"), "REML")
+    expect_error(flipmeta::flipmeta(fit, control = 1), "must be a list")
+    expect_error(
+        flipmeta::flipmeta(fit, control = list(unknown = 1)),
+        "Unknown control"
+    )
+    expect_error(
+        flipmeta::flipmeta(fit, control = list(tau2_interval = c(1, 0))),
+        "increasing"
+    )
+
+    overridden <- flipmeta::flipmeta(fit, B = 8, method = "ee")
+    expect_identical(overridden$method, "EE")
+    expect_equal(overridden$tau2, 0)
+})
+
+test_that("flip dimensions and names identify observations unambiguously", {
+    fit <- make_validation_fit()
+    flips <- complete_flips(as.character(seq_len(fit$k)))
+
+    expect_error(
+        flipmeta::flipmeta(fit, flips = flips[, -1, drop = FALSE]),
+        "does not contain all observations"
+    )
+
+    duplicated_names <- flips
+    colnames(duplicated_names)[2] <- colnames(duplicated_names)[1]
+    expect_error(
+        flipmeta::flipmeta(fit, flips = duplicated_names),
+        "unique"
+    )
+
+    unnamed_wrong_size <- unname(flips[, -1, drop = FALSE])
+    expect_error(
+        flipmeta::flipmeta(fit, flips = unnamed_wrong_size),
+        "ncol\\(flips\\)"
+    )
+})

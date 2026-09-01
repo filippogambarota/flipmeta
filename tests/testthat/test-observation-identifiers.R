@@ -101,3 +101,91 @@ test_that("row names of an inline subset are recovered", {
         c("1", "3", "4")
     )
 })
+
+test_that("named flips align reordered and partially overlapping specifications", {
+    dat <- validation_data()
+    flips <- complete_flips(dat$study_id)
+
+    fit_all <- metafor::rma.uni(yi, vi, mods = ~ x, data = dat)
+    selected_rows <- c(8, 3, 6, 1, 5, 4)
+    selected <- dat[selected_rows, ]
+    fit_selected <- metafor::rma.uni(yi, vi, mods = ~ x, data = selected)
+
+    joined <- flipmeta::flipmeta(
+        list(all = fit_all, selected = fit_selected),
+        id = "study_id",
+        flips = flips,
+        tested_coeffs = "x",
+        progress = FALSE
+    )
+
+    absent <- setdiff(dat$study_id, selected$study_id)
+    expect_identical(rownames(joined$objects$selected$scores), dat$study_id)
+    expect_equal(
+        unname(joined$objects$selected$scores[absent, "x"]),
+        rep(0, length(absent))
+    )
+
+    direct_flips <- unname(flips[, selected$study_id, drop = FALSE])
+    direct <- flipmeta::flipmeta(
+        fit_selected,
+        flips = direct_flips,
+        tested_coeffs = "x"
+    )
+    expect_equal(joined$objects$selected$Tspace, direct$Tspace, tolerance = 1e-10)
+    expect_equal(
+        unname(joined$objects$selected$scores[selected$study_id, "x"]),
+        unname(direct$scores[, "x"]),
+        tolerance = 1e-10
+    )
+
+    combined <- do.call(cbind, lapply(joined$objects, `[[`, "Tspace"))
+    expect_equal(unname(as.matrix(joined$Tspace)), unname(as.matrix(combined)))
+})
+
+test_that("the ordering of named flip columns does not affect joined results", {
+    dat <- validation_data()
+    fit_all <- metafor::rma.uni(yi, vi, mods = ~ x, data = dat)
+    fit_subset <- metafor::rma.uni(
+        yi, vi,
+        mods = ~ x,
+        data = dat,
+        subset = study_id != "s3"
+    )
+    fits <- list(all = fit_all, subset = fit_subset)
+    flips <- complete_flips(dat$study_id)
+
+    original <- flipmeta::flipmeta(
+        fits,
+        id = "study_id",
+        flips = flips,
+        tested_coeffs = "x",
+        progress = FALSE
+    )
+    reordered <- flipmeta::flipmeta(
+        fits,
+        id = "study_id",
+        flips = flips[, c(5, 1, 8, 3, 6, 2, 7, 4)],
+        tested_coeffs = "x",
+        progress = FALSE
+    )
+
+    expect_equal(original$Tspace, reordered$Tspace, tolerance = 1e-10)
+    expect_equal(original$summary_table$p, reordered$summary_table$p)
+})
+
+test_that("observation identifiers cannot be missing", {
+    dat <- validation_data()
+    dat$study_id[3] <- NA_character_
+    fit <- metafor::rma.uni(yi, vi, mods = ~ x, data = dat)
+
+    expect_error(
+        flipmeta::flipmeta(
+            list(first = fit, second = fit),
+            id = "study_id",
+            B = 8,
+            progress = FALSE
+        ),
+        "missing"
+    )
+})

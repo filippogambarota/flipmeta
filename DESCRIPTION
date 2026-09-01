@@ -15,6 +15,7 @@ Roxygen: list(markdown = TRUE)
 Imports: 
     flipscores,
     ggplot2,
+    patchwork,
     rlang,
     metafor
 Suggests:
@@ -22,4 +23,4 @@ Suggests:
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
 Remotes:
-    flipscores=livioivil/flipscores@test
+    flipscores=livioivil/flipscores
