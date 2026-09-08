@@ -1,31 +1,33 @@
-sim_es_fast <- function(k,
-                        mu,
-                        tau2,
-                        n,
-                        rfun = "norm",
-                        vs = 0,
-                        vp = 1,
-                        df = 5,
-                        skew = 2.8,
-                        min_n = 10) {
+#' Simulate standardized mean differences for a meta-regression
+#'
+#' Generates study-level random effects, balanced group sizes, sample means,
+#' and sample standard deviations, then computes Hedges' standardized mean
+#' differences and their sampling variances with [metafor::escalc()]. When a
+#' scale moderator is supplied, the study-specific heterogeneity variance is
+#' `tau2 * exp(zeta * X - zeta^2 / 2)`.
+#'
+#' @param k Integer. Number of studies.
+#' @param mu Numeric vector of length `k`. Location-model mean for each study.
+#' @param tau2 Non-negative number. Baseline between-study variance.
+#' @param n Positive number. Fixed sample size in each group.
+#' @param X Optional numeric vector of length `k` containing the scale
+#'   moderator.
+#' @param zeta Numeric scalar. Log-linear scale coefficient.
+#'
+#' @return A `metafor` `escalc` data frame with one row per study. In addition
+#'   to `yi` and `vi`, it contains the data-generating quantities, group sample
+#'   sizes, sample means, and sample standard deviations.
+#' @keywords internal
+sim_es_fast <- function(k, mu, tau2, n, X = NULL, zeta = 0) {
+  if (!is.null(X) && zeta != 0 && tau2 > 0) {
+    tau2 <- tau2 * exp(zeta * X - zeta^2 / 2)
+  }
   dat <- data.frame(id = 1:k, mu = mu, tau2 = tau2)
-  # random effects
 
-  rfun <- match.arg(rfun, c("norm", "t", "gamma"))
+  # random effects (normal distribution)
+  dat$deltai <- rnorm(k, 0, sqrt(tau2))
 
-  deltai <- switch(
-      rfun,
-      norm = rnorm.ranef(k, tau2),
-      t = rt.ranef(k, df, tau2),
-      gamma = rgamma.ranef(k, tau2, skew)
-  )
-
-  dat$deltai <- deltai
-
-  dat$n1 <- MASS::rnegbin(k, n, theta = n / 3)
-  # minimimum sample size to 10
-  dat$n1 <- pmax(dat$n1, min_n)
-  dat$n2 <- dat$n1
+  dat$n1 <- dat$n2 <- n
 
   true_m1 <- dat$mu + dat$deltai
   true_m2 <- 0
@@ -46,13 +48,18 @@ sim_es_fast <- function(k,
     data = dat
   )
 
-  out$vi_o <- out$vi
-  w <- perturb_v(k, vs, vp)
-  out$vi <- out$vi * w
-  out$w <- w
   out
 }
 
+#' Expand and validate a vector of regression coefficients
+#'
+#' @param beta A coefficient or vector of coefficients.
+#' @param n Non-negative integer giving the required number of coefficients.
+#' @param name Character scalar used to identify `beta` in error messages.
+#'
+#' @return A numeric vector of length `n`. A scalar `beta` is recycled; when
+#'   `n` is zero, an empty numeric vector is returned.
+#' @keywords internal
 .expand_beta <- function(beta, n, name) {
   if (n == 0L) {
     return(numeric(0))
@@ -69,6 +76,22 @@ sim_es_fast <- function(k,
   beta
 }
 
+#' Generate the meta-regression location model
+#'
+#' Draws standardized Gaussian focal and nuisance moderators with a compound-
+#' symmetry correlation matrix and computes their linear predictor.
+#'
+#' @param k Integer. Number of studies.
+#' @param nZ Non-negative integer. Number of nuisance moderators.
+#' @param nX Non-negative integer. Number of focal moderators.
+#' @param b0 Numeric scalar. Intercept.
+#' @param bZ Numeric scalar or vector of length `nZ`. Nuisance coefficients.
+#' @param bX Numeric scalar or vector of length `nX`. Focal coefficients.
+#' @param rXZ Numeric scalar. Common pairwise correlation among all moderators.
+#'
+#' @return A named list with `M`, the model matrix, and `mu`, the corresponding
+#'   vector of study-level means.
+#' @keywords internal
 get_mu <- function(k, nZ, nX, b0, bZ, bX, rXZ) {
   if (
     length(nZ) != 1L ||
@@ -106,6 +129,13 @@ get_mu <- function(k, nZ, nX, b0, bZ, bX, rXZ) {
   list(M = M, mu = mu)
 }
 
+#' Extract Wald inference from a meta-analytic model
+#'
+#' @param fit A fitted `metafor::rma` model.
+#'
+#' @return A data frame containing coefficient names, estimates, standard
+#'   errors, Wald statistics, and p-values.
+#' @keywords internal
 wald <- function(fit) {
   data.frame(
     coef = rownames(fit$b),
@@ -116,8 +146,18 @@ wald <- function(fit) {
   )
 }
 
+#' Compute CR2 robust inference
+#'
+#' Applies [metafor::robust()] with singleton study clusters and the
+#' `clubSandwich` small-sample correction.
+#'
+#' @param fit A fitted `metafor::rma` model whose data contain an `id` column.
+#'
+#' @return A data frame containing coefficient names, robust standard errors,
+#'   test statistics, and p-values.
+#' @keywords internal
 robu <- function(fit) {
-  res <- robust(fit, cluster = id, adjust = TRUE, clubSandwich = TRUE)
+  res <- metafor::robust(fit, cluster = id, adjust = TRUE, clubSandwich = TRUE)
   data.frame(
     coef = rownames(res$b),
     se_rob = res$se,
@@ -126,6 +166,13 @@ robu <- function(fit) {
   )
 }
 
+#' Compute sign-flipping inference
+#'
+#' @param fit A fitted `metafor::rma` model accepted by [flipmeta::flipmeta()].
+#'
+#' @return A data frame containing coefficient names and sign-flipping
+#'   p-values.
+#' @keywords internal
 flip <- function(fit) {
   res <- flipmeta::flipmeta(fit)$summary_table
   data.frame(
@@ -134,6 +181,20 @@ flip <- function(fit) {
   )
 }
 
+#' Fit a meta-regression and apply the competing tests
+#'
+#' Fits an equal- or random-effects meta-regression and combines Wald,
+#' Knapp--Hartung, ad hoc Knapp--Hartung, CR2, and sign-flipping results.
+#'
+#' @param data A data frame containing at least `yi`, `vi`, and `id`.
+#' @param mods A model matrix. A column named `intercept`, when present, is
+#'   removed because [metafor::rma()] adds the intercept itself.
+#' @param method Character scalar passed to the `method` argument of
+#'   [metafor::rma()], for example `"EE"` or `"REML"`.
+#'
+#' @return A data frame with one row per coefficient and columns from all
+#'   competing inferential procedures.
+#' @keywords internal
 fit_meta <- function(data, mods, method = "REML") {
   mods <- as.matrix(mods)
   intercept_col <- which(colnames(mods) == "intercept")
@@ -143,9 +204,9 @@ fit_meta <- function(data, mods, method = "REML") {
   }
 
   if (ncol(mods) == 0L) {
-    fit <- rma(yi = yi, vi = vi, data = data, method = method)
+    fit <- metafor::rma(yi = yi, vi = vi, data = data, method = method)
   } else {
-    fit <- rma(
+    fit <- metafor::rma(
       yi = yi,
       vi = vi,
       mods = mods,
@@ -164,9 +225,26 @@ fit_meta <- function(data, mods, method = "REML") {
   )
 }
 
-# safe wrapper
+#' Failure-tolerant meta-analysis fitting wrapper
+#'
+#' A wrapper around [fit_meta()] created with [purrr::possibly()]. It returns
+#' `NULL` when model fitting or any downstream inferential procedure fails.
+#'
+#' @inheritParams fit_meta
+#' @return The result of [fit_meta()], or `NULL` on error.
+#' @keywords internal
 sfit_meta <- purrr::possibly(fit_meta)
 
+#' Compute Knapp--Hartung inference
+#'
+#' Computes both the ordinary Knapp--Hartung adjustment and its ad hoc variant,
+#' which truncates the residual scale factor at one.
+#'
+#' @param fit A fitted `metafor::rma` model.
+#'
+#' @return A data frame containing coefficient names, standard errors, test
+#'   statistics, and p-values for both Knapp--Hartung variants.
+#' @keywords internal
 knha <- function(fit) {
   w <- as.numeric(1 / (fit$vi + fit$tau2))
   X <- model.matrix(fit)
@@ -200,140 +278,107 @@ knha <- function(fit) {
   )
 }
 
-# generating random effects with variance tau2 from a t distribution
-rt.ranef <- function(n, df, tau2){
-    (rt(n, df) * sqrt(tau2 * (df - 2)/df))
-}
-
-# generating random effects from a gamma with mean 0 and variance
-# tau2. they are centered on the true value
-
-rgamma.ranef <- function(n, tau2, skew = 2.8) {
-    # skew = 2.8 ~~ shape 0.5, moderate skewness
-    shape <- 4 / skew^2
-    scale <- sqrt(tau2 / shape)
-    gamma_mean <- shape * scale
-    stats::rgamma(
-        n,
-        shape = shape,
-        scale = scale
-    ) - gamma_mean
-}
-
-rnorm.ranef <- function(n, tau2){
-    rnorm(n, 0, sqrt(tau2))
-}
-
-# generate a perturbation factor where the log ratio between
-# original and perturbed comes from a normal distribution
-
-perturb_v <- function(k, s, p = 1) {
-    w <- exp(rnorm(k, 0, s))
-    ifelse(rbinom(k, 1, p) == 1, w, 1)
-}
-
-
+#' Simulate one meta-regression data set
+#'
+#' Combines the location-model generator [get_mu()] with the effect-size
+#' generator [sim_es_fast()]. The first focal moderator, when present, is used
+#' as the scale moderator for study-specific heterogeneity.
+#'
+#' @inheritParams get_mu
+#' @param tau2 Non-negative number. Baseline between-study variance.
+#' @param zeta Numeric scalar. Log-linear scale coefficient.
+#' @param n Positive number. Fixed sample size in each group.
+#'
+#' @return A named list with `M`, the simulated model matrix, and `data`, the
+#'   `metafor` `escalc` data frame.
+#' @keywords internal
 sim_meta <- function(
-        k,
-        nZ,
-        nX,
-        b0,
-        bZ,
-        bX,
-        rXZ,
-        tau2,
-        n,
-        rfun = "norm",
-        vs = 0,
-        vp = 1,
-        df = 5,
-        skew = 2.8,
-        min_n = 10
+  k,
+  nZ,
+  nX,
+  b0,
+  bZ,
+  bX,
+  rXZ,
+  tau2,
+  zeta = 0,
+  n
 ) {
-    mod <- get_mu(
+  mod <- get_mu(
+    k = k,
+    nZ = nZ,
+    nX = nX,
+    b0 = b0,
+    bZ = bZ,
+    bX = bX,
+    rXZ = rXZ
+  )
+
+  X_vec <- if (nX > 0L && "x1" %in% colnames(mod$M)) mod$M[, "x1"] else NULL
+
+  es <- sim_es_fast(
+    k = k,
+    mu = mod$mu,
+    tau2 = tau2,
+    n = n,
+    X = X_vec,
+    zeta = zeta
+  )
+
+  list(
+    M = mod$M,
+    data = es
+  )
+}
+
+#' Run one simulation condition
+#'
+#' Repeatedly generates a meta-regression data set and analyzes it with
+#' [sfit_meta()].
+#'
+#' @param nsim Positive integer. Number of Monte Carlo replications.
+#' @inheritParams sim_meta
+#' @param method Character scalar passed to [metafor::rma()].
+#'
+#' @return A list of length `nsim`; each element is either the data frame
+#'   returned by [fit_meta()] or `NULL` if that replication failed.
+#' @keywords internal
+do_sim <- function(
+  nsim = 1,
+  k,
+  nZ,
+  nX,
+  b0,
+  bZ,
+  bX,
+  rXZ,
+  tau2,
+  zeta = 0,
+  n,
+  method = "REML"
+) {
+  replicate(
+    nsim,
+    {
+      dat <- sim_meta(
         k = k,
         nZ = nZ,
         nX = nX,
         b0 = b0,
         bZ = bZ,
         bX = bX,
-        rXZ = rXZ
-    )
-
-    es <- sim_es_fast(
-        k = k,
-        mu = mod$mu,
+        rXZ = rXZ,
         tau2 = tau2,
-        n = n,
-        rfun = rfun,
-        vs = vs,
-        vp = vp,
-        df = df,
-        skew = skew,
-        min_n = min_n
-    )
+        zeta = zeta,
+        n = n
+      )
 
-    list(
-        M = mod$M,
-        data = es
-    )
-}
-
-do_sim <- function(
-        nsim = 1,
-        k,
-        nZ,
-        nX,
-        b0,
-        bZ,
-        bX,
-        rXZ,
-        tau2,
-        n,
-        rfun = "norm",
-        vs = 0,
-        vp = 1,
-        df = 5,
-        skew = 2.8,
-        min_n = 10,
-        method = "REML"
-) {
-    replicate(
-        nsim,
-        {
-            dat <- sim_meta(
-                k = k,
-                nZ = nZ,
-                nX = nX,
-                b0 = b0,
-                bZ = bZ,
-                bX = bX,
-                rXZ = rXZ,
-                tau2 = tau2,
-                n = n,
-                rfun = rfun,
-                vs = vs,
-                vp = vp,
-                df = df,
-                skew = skew,
-                min_n = min_n
-            )
-
-            sfit_meta(
-                data = dat$data,
-                mods = dat$M,
-                method = method
-            )
-        },
-        simplify = FALSE
-    )
-}
-
-power_b1 <- function(k, n, tau2, b1, alpha = 0.05){
-    v <- 1/n + 1/n
-    vb1 <- (v + tau2) / (k - 1)
-    se_b1 <- sqrt(vb1)
-    zobs <- b1 / se_b1
-    zc <- qnorm(1 - alpha / 2)
-    (1 - pnorm(zc - zobs)) + pnorm(-zc - zobs)
+      sfit_meta(
+        data = dat$data,
+        mods = dat$M,
+        method = method
+      )
+    },
+    simplify = FALSE
+  )
 }

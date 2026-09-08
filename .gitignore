@@ -7,3 +7,6 @@ sources/
 ..Rcheck/
 snowflake.log
 codex/
+.rsync-backup/
+res*.rds
+*_cache/

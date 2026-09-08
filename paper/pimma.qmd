@@ -3,6 +3,8 @@ title: Post-selection inference in multiverse meta-analysis
 shorttitle: PIMMA
 format:
   apaquarto-pdf: default
+bibliography:
+  - "https://raw.githubusercontent.com/filippogambarota/bib-database/main/references.bib"
 author:
   - name: Matteo Manente
     affiliations:
@@ -63,61 +65,59 @@ sim <- readRDS(here::here("simulation/res.rds"))
 sim <- unnest_longer(sim, res, indices_to = "sim")
 sim <- unnest(sim, res)
 
-holm_vs_maxt <- readRDS(here::here("simulation/holm_vs_maxt.rds"))
-
 mtheme <- function() {
   theme_minimal(20) +
     theme(legend.position = "bottom")
 }
 
 cbt <- readRDS(
-    here::here(
-        "application",
-        "cbt-depression",
-        "cbt-dep-clean.rds"
-    )
+  here::here(
+    "application",
+    "cbt-depression",
+    "cbt-dep-clean.rds"
+  )
 )
 
 multi <- readRDS(
-    here::here(
-        "application",
-        "cbt-depression",
-        "cbt-dep-multi.rds"
-    )
+  here::here(
+    "application",
+    "cbt-depression",
+    "cbt-dep-multi.rds"
+  )
 )
 
 # CBT in adult populations ----------------------------------------------
 
 cbt_subset <- cbt |>
-    filter(
-        condition == "CBT",
-        target_group == "Adults"
-    )
+  filter(
+    condition == "CBT",
+    target_group == "Adults"
+  )
 
 # Descriptive information for the CBT application -----------------------
 
 cbt_study_counts <- cbt_subset |>
-    count(
-        study_id,
-        name = "n_effects"
-    )
+  count(
+    study_id,
+    name = "n_effects"
+  )
 
 n_cbt_effects <- nrow(cbt_subset)
 
 n_cbt_studies <- n_distinct(
-    cbt_subset$study_id
+  cbt_subset$study_id
 )
 
 median_effects_per_study <- median(
-    cbt_study_counts$n_effects
+  cbt_study_counts$n_effects
 )
 
 min_effects_per_study <- min(
-    cbt_study_counts$n_effects
+  cbt_study_counts$n_effects
 )
 
 max_effects_per_study <- max(
-    cbt_study_counts$n_effects
+  cbt_study_counts$n_effects
 )
 
 theme_set(mtheme())
@@ -249,7 +249,7 @@ $$\ell_{\mathrm{REML}}(\tau^2)
 
 After $\hat{\tau}^2_{\mathrm{REML}}$ has been obtained, the final estimates of the meta-regression coefficients are computed using $\hat{\tau}^2_{\mathrm{REML}}$ in @eq-wls.
 
-Several methods have been proposed to perform statistical inference on the regression coefficients in mixed-effects meta-regression models [see @Viechtbauer2015-tn]. Here, we consider the three main approaches that will be compared in the simulation study: Wald-type inference, the Knapp--Hartung method [@Knapp2003-qx], and permutations [@Follmann1999-ha; @Higgins2004-gf].
+Several methods have been proposed to perform statistical inference on the regression coefficients in mixed-effects meta-regression models [see @Viechtbauer2015-tn]. Here, we consider four conventional approaches: Wald-type inference, the Knapp--Hartung method [@Knapp2003-qx], heteroskedasticity-robust inference based on a small-sample corrected sandwich covariance estimator [@White1980-tl; @Tipton2015-bo; @Pustejovsky2018-am], and permutation testing [@Follmann1999-ha; @Higgins2004-gf].
 
 Under the standard Wald-type approach, the variance-covariance matrix of the estimated regression coefficients is estimated as
 
@@ -285,6 +285,32 @@ k-p
  {#eq-kh-scale}
 
 The test statistic is computed as in @eq-wald-stat, using the corresponding adjusted standard error, and is compared against a $t$ distribution with $k-p$ degrees of freedom. A truncated version of the Knapp--Hartung method sets $s^2 = 1$ whenever $s^2 < 1$, thereby preventing the adjusted standard error from being smaller than the standard Wald-type standard error.
+
+We additionally considered heteroskedasticity-robust inference based on a small-sample corrected sandwich covariance estimator. Although robust variance estimation is often used to accommodate dependent effect sizes within studies [@Hedges2010-ik], in the present setting each study contributes one independent effect size and is therefore treated as a singleton cluster. Let $\mathbf{B}=(\mathbf{D}^{\top}\hat{\mathbf{W}}\mathbf{D})^{-1}$ and $\hat e_i=y_i-\mathbf{d}_i^{\top}\mathbf{b}$. The unadjusted sandwich estimator is
+
+$$
+\widehat{\mathbf{V}}_{\mathbf{b},\mathrm{CR0}}
+=
+\mathbf{B}
+\left(
+\sum_{i=1}^{k}
+\hat w_i^2
+\mathbf{d}_i\mathbf{d}_i^{\top}
+\hat e_i^2
+\right)
+\mathbf{B}.
+$$
+
+This estimator permits arbitrary heteroskedasticity across independent studies and does not require the true conditional variance to equal $v_i+\hat\tau^2$ [@White1980]. To reduce finite-sample bias, we used the CR2 bias-reduced linearization adjustment [@Tipton2015-bo; @Pustejovsky2018-am]. For singleton clusters with inverse-variance weights, CR2 rescales each residual by $(1-h_i)^{-1/2}$, where $h_i=\hat w_i\mathbf{d}_i^{\top}\mathbf{B}\mathbf{d}_i$ is its weighted leverage. For testing $H_0:\beta_j=0$, the statistic
+
+$$
+t_{j,\mathrm{CR2}}
+=
+\frac{b_j}
+{\sqrt{[\widehat{\mathbf{V}}_{\mathbf{b},\mathrm{CR2}}]_{jj}}}
+$$
+
+was compared with a $t$ distribution having coefficient-specific Satterthwaite degrees of freedom. These degrees of freedom reflect the effective amount of independent information for the tested moderator and can be substantially smaller than $k-p$ when leverage or study weights are highly uneven [@Tipton2015-bo]. This procedure is robust to misspecification of the variance structure but not to misspecification of the conditional mean or violations of independence between studies. It was implemented by treating study identifiers as singleton clusters in the `clubSandwich` [@Pustejovsky2026-sk] through the `metafor::robust()` function [@Viechtbauer2010-xz].
 
 Permutation testing provides a nonparametric alternative for testing moderator effects. Following the implementation in `metafor::permutest()` and the permutation approach discussed by @Viechtbauer2015-tn, for models with moderators the rows of the complete model matrix $\mathbf{D}$ are permuted while the observed effect-size estimates and sampling variances are kept fixed. For each permutation, the complete mixed-effects meta-regression model is refitted, including re-estimation of the regression coefficients and $\tau^2$. For a given coefficient $b_j$, let $z_j^{(1)}$ denote the Wald-type statistic obtained from the original data and let $z_j^{(r)}$, $r=2,\ldots,B$, denote the statistics obtained from $B-1$ random permutations. The original data configuration is included as the first configuration. For a two-sided test, the permutation $p$ value is computed as
 
@@ -658,7 +684,7 @@ Second, selective inference can be performed for individual specifications. PIMA
 
 # Simulation study
 
-We performed a simulation study to evaluate the inferential performance of the proposed `flipmeta` approach and compare it with standard Wald-type inference and the Knapp--Hartung method [@Knapp2003-qx]. Standard permutation-based procedures for meta-analysis [@Follmann1999-ha; @Higgins2004-gf] were not included because they require repeated permutation of the model matrix and refitting of the complete meta-analytic model, resulting in a prohibitive computational cost.
+We performed a simulation study to evaluate the inferential performance of the proposed `flipmeta` approach and compare it with the other inferential methods introduced above. Standard permutation-based procedures for meta-analysis [@Follmann1999-ha; @Higgins2004-gf] were not included because they require repeated permutation of the model matrix and refitting of the complete meta-analytic model, resulting in a prohibitive computational cost.
 
 Data were generated following the general simulation framework of @Viechtbauer2015-tn. We considered meta-analyses consisting of $k$ independent studies, each comparing an experimental group ($E$) with a control group ($C$) on a quantitative outcome. For study $i=1,\ldots,k$, observations in the two groups were assumed to follow normal distributions with means $\mu_i^E$ and $\mu_i^C$ and a common within-study standard deviation $\sigma_i$. The true standardized mean difference for study $i$ was therefore
 
@@ -702,17 +728,50 @@ $$\boldsymbol{\theta} =
 +
 \mathbf{u},$$
 
-where $\mathbf{X}$ contains the focal predictors, $\boldsymbol{\beta}$ their corresponding regression coefficients, $\mathbf{Z}$ contains nuisance predictors, $\boldsymbol{\gamma}$ their coefficients, and $\mathbf{u}$ is the vector of study-specific random effects. The random effects were independently generated as $u_i \sim \mathcal{N}(0,\tau^2)$.
+where $\mathbf{X}$ contains the focal predictors, $\boldsymbol{\beta}$ their corresponding regression coefficients, $\mathbf{Z}$ contains nuisance predictors, $\boldsymbol{\gamma}$ their coefficients, and $\mathbf{u}$ is the vector of study-specific random effects. In all conditions, the location model included one focal moderator $X_i$ and one nuisance moderator $Z_i$, together with an intercept. The two moderators were generated from a bivariate normal distribution with zero means, unit variances, and correlation $\rho_{XZ}\in\{0,0.5,0.8\}$. The intercept was fixed at $\beta_0=0$, the nuisance coefficient at $\gamma_Z=0.2$, and the focal coefficient at $\beta_X\in\{0,0.2\}$. Thus, $\beta_X=0$ was used to estimate the Type I error rate and $\beta_X=0.2$ to estimate power.
 
-Under the null hypothesis, the focal coefficients were set to $\boldsymbol{\beta}=\mathbf{0}$, allowing empirical Type I error rates to be evaluated. Under the alternative hypothesis, focal regression coefficients were set to $\beta \in \{0.1,0.3,0.5\}$, representing increasingly strong associations and allowing statistical power to be evaluated. The nuisance coefficients were similarly varied over $\gamma \in \{0.1,0.3,0.5\}$ under both the null and alternative hypotheses.
+To examine robustness to misspecification of the heterogeneity structure, residual random effects were generated from a location--scale meta-regression model [@Viechtbauer2022-rz]. Specifically,
 
-Focal and nuisance predictors were jointly generated from a multivariate normal distribution with mean zero and unit marginal variances. A compound-symmetry correlation structure with pairwise correlation $\rho=0.5$ was used, so that focal and nuisance predictors were moderately correlated. This setting was chosen to represent the common situation in which inference on a focal moderator must account for correlated study-level covariates.
+$$
+u_i \sim \mathcal{N}(0,\tau_i^2),
+$$
 
-Residual heterogeneity was varied by setting $\tau^2 \in \{0,0.01,0.10,0.50\}$. The condition $\tau^2=0$ corresponds to the absence of residual between-study heterogeneity, whereas the remaining values represent progressively larger amounts of heterogeneity on the standardized mean-difference scale. The number of studies was varied over $k \in \{10,20,40,100\}$, covering meta-analyses ranging from relatively small to large. Study sample sizes were also allowed to vary across studies. For each study, equal expected group sizes were assumed, such that $n_i^E$ and $n_i^C$ were generated from the same negative-binomial distribution. Four average group sizes were considered, $n \in \{10,30,50,80\}$, and the negative-binomial dispersion parameter was chosen so that the variance of the generated sample sizes was approximately twice their mean. This produces heterogeneous study sizes while retaining a prespecified average sample size, more closely reflecting the variation in study precision typically encountered in meta-analysis.
+with study-specific heterogeneity variance generated according to the normalized log-linear scale model
 
-For each combination of simulation parameters, the resulting effect-size estimates $y_i$ and sampling variances $v_i$ were analyzed using the competing inferential procedures. Performance under the null hypothesis was quantified by the empirical Type I error rate at the nominal significance level $\alpha=0.05$, whereas performance under the alternative hypothesis was quantified by empirical statistical power.
+$$
+\tau_i^2
+=
+\tau_0^2
+\exp\left(
+\zeta X_i - \frac{\zeta^2}{2}
+\right),
+$$
 
-The simulation results are summarized in @fig-type-1-power-sim.
+where the same focal moderator $X_i \sim \mathcal{N}(0,1)$ used in the location model also determined the heterogeneity variance. The normalization term $-\zeta^2/2$ ensures that the marginal mean heterogeneity remains fixed at $E(\tau_i^2)=\tau_0^2$ for all values of $\zeta$, while $\exp(\zeta)$ represents the multiplicative change in heterogeneity variance associated with a one-standard-deviation increase in $X_i$. The scale coefficient $\zeta$ was set to $0$, $\log(1.5)$, or $\log(2)$, corresponding to no change, a 50% increase, or a 100% increase in $\tau_i^2$ per standard-deviation increase in $X_i$. We set $\tau_0^2\in\{0,0.05\}$ and excluded the logically redundant conditions with $\tau_0^2=0$ and $\zeta\ne0$.
+
+Although the data were generated with moderator-dependent heterogeneity when $\zeta>0$, the fitted equal-effects and conventional random-effects meta-regression models did not include a scale component. These conditions therefore assessed the inferential procedures under deliberate variance-structure misspecification while retaining a correctly specified location model.
+
+The number of studies was varied over $k\in\{10,30,60,80\}$. Within each study, the two groups had the same fixed sample size, $n_i^E=n_i^C=n$, with $n\in\{15,40,80\}$. The control-group mean was fixed at zero, the experimental-group mean at the study-specific true effect, and the population standard deviation at one in both groups. Sample means and standard deviations were then generated from their normal-theory sampling distributions before computing $y_i$ and $v_i$ with `metafor::escalc()`.
+
+The complete set of simulation conditions was therefore:
+
+| Component | Values |
+|---|---|
+| Focal and nuisance moderators | $n_X=1$ and $n_Z=1$ |
+| Intercept | $\beta_0=0$ |
+| Focal coefficient | $\beta_X\in\{0,0.2\}$ |
+| Nuisance coefficient | $\gamma_Z=0.2$ |
+| Moderator correlation | $\rho_{XZ}\in\{0,0.5,0.8\}$ |
+| Baseline heterogeneity | $\tau_0^2\in\{0,0.05\}$ |
+| Scale coefficient | $\zeta\in\{0,\log(1.5),\log(2)\}$ when $\tau_0^2=0.05$; $\zeta=0$ when $\tau_0^2=0$ |
+| Number of studies | $k\in\{10,30,60,80\}$ |
+| Fixed sample size per group | $n\in\{15,40,80\}$ |
+| Fitted meta-regression model | equal-effects (EE) or random-effects with REML estimation |
+| Monte Carlo replications | 5,000 per condition |
+
+For each condition, the focal coefficient was tested using the Wald test, the Knapp--Hartung test, its ad hoc truncated version, CR2 robust inference, and `flipmeta`. All procedures were evaluated at the nominal significance level $\alpha=0.05$. Performance was quantified by the empirical Type I error rate when $\beta_X=0$ and by empirical power when $\beta_X=0.2$.
+
+@fig-type-1-power-sim illustrates the rejection rates, pooled over the sample-size, moderator-correlation, and scale-coefficient conditions.
 
 ```{r}
 #| label: fig-type-1-power-sim
@@ -727,7 +786,7 @@ type1 <- sim |>
   group_by(bX, tau2, k, method, name) |>
   summarise(p = mean(value <= 0.05)) |>
   ggplot(aes(x = k, y = p, color = name)) +
-  geom_hline(yintercept = filor::se_p(0.05, 500)$ci, lty = "dotted") +
+  geom_hline(yintercept = filor::se_p(0.05, 5000)$ci, lty = "dotted") +
   geom_point() +
   geom_line() +
   facet_grid(tau2 ~ method) +
@@ -849,37 +908,39 @@ All specifications estimated an intercept-only random-effects model, with the po
 
 set.seed(2026)
 
-res <- flipmeta(multi$fitl,
-                id = "study_id",
-                B = 5000,
-                extra = multi$multi,
-                progress = FALSE)
+res <- flipmeta(
+  multi$fitl,
+  id = "study_id",
+  B = 5000,
+  extra = multi$multi,
+  progress = FALSE
+)
 res <- p.adjust(res, method = "maxT")
 
 # Global PIMMA test ------------------------------------------------------
 
 global_maxT <- apply(
-    abs(as.matrix(res$Tspace)),
-    1,
-    max
+  abs(as.matrix(res$Tspace)),
+  1,
+  max
 )
 
 global_p <- mean(
-    global_maxT >= global_maxT[1]
+  global_maxT >= global_maxT[1]
 )
 
 # Specification-specific inference --------------------------------------
 
 inference_desc <- res$summary_table |>
-    summarise(
-        n_raw_sig = sum(p <= 0.05, na.rm = TRUE),
-        pct_raw_sig = 100 * mean(p <= 0.05, na.rm = TRUE),
-        n_maxt_sig = sum(p.adj <= 0.05, na.rm = TRUE),
-        pct_maxt_sig = 100 * mean(p.adj <= 0.05, na.rm = TRUE)
-    ) |>
-    mutate(
-        pct_surviving = 100 * n_maxt_sig / n_raw_sig
-    )
+  summarise(
+    n_raw_sig = sum(p <= 0.05, na.rm = TRUE),
+    pct_raw_sig = 100 * mean(p <= 0.05, na.rm = TRUE),
+    n_maxt_sig = sum(p.adj <= 0.05, na.rm = TRUE),
+    pct_maxt_sig = 100 * mean(p.adj <= 0.05, na.rm = TRUE)
+  ) |>
+  mutate(
+    pct_surviving = 100 * n_maxt_sig / n_raw_sig
+  )
 
 
 # Dependence among specification-level statistics -----------------------
@@ -887,99 +948,97 @@ inference_desc <- res$summary_table |>
 cor_mat <- cor(res$Tspace)
 
 cor_values <- cor_mat[
-    upper.tri(cor_mat)
+  upper.tri(cor_mat)
 ]
 
 cor_desc <- tibble(
-    cor = cor_values
+  cor = cor_values
 ) |>
-    summarise(
-        min_cor = min(cor, na.rm = TRUE),
-        q1_cor = quantile(cor, 0.25, na.rm = TRUE),
-        median_cor = median(cor, na.rm = TRUE),
-        q3_cor = quantile(cor, 0.75, na.rm = TRUE),
-        max_cor = max(cor, na.rm = TRUE)
-    )
+  summarise(
+    min_cor = min(cor, na.rm = TRUE),
+    q1_cor = quantile(cor, 0.25, na.rm = TRUE),
+    median_cor = median(cor, na.rm = TRUE),
+    q3_cor = quantile(cor, 0.75, na.rm = TRUE),
+    max_cor = max(cor, na.rm = TRUE)
+  )
 
 holm_p <- stats::p.adjust(
-    res$summary_table$p,
-    method = "holm"
+  res$summary_table$p,
+  method = "holm"
 )
 
 holm_desc <- tibble(
-    p_holm = holm_p
+  p_holm = holm_p
 ) |>
-    summarise(
-        n_holm_sig = sum(p_holm <= 0.05, na.rm = TRUE),
-        pct_holm_sig = 100 * mean(p_holm <= 0.05, na.rm = TRUE)
-    )
+  summarise(
+    n_holm_sig = sum(p_holm <= 0.05, na.rm = TRUE),
+    pct_holm_sig = 100 * mean(p_holm <= 0.05, na.rm = TRUE)
+  )
 
 # Summary of specification-level inference ------------------------------
 
 inference_table <- tibble(
-    Method = c(
-        "Unadjusted PIMMA",
-        "Single-step maxT",
-        "Holm"
-    ),
-    `Rejected specifications` = c(
-        inference_desc$n_raw_sig,
-        inference_desc$n_maxt_sig,
-        holm_desc$n_holm_sig
-    ),
-    `Percentage (%)` = c(
-        inference_desc$pct_raw_sig,
-        inference_desc$pct_maxt_sig,
-        holm_desc$pct_holm_sig
-    )
+  Method = c(
+    "Unadjusted PIMMA",
+    "Single-step maxT",
+    "Holm"
+  ),
+  `Rejected specifications` = c(
+    inference_desc$n_raw_sig,
+    inference_desc$n_maxt_sig,
+    holm_desc$n_holm_sig
+  ),
+  `Percentage (%)` = c(
+    inference_desc$pct_raw_sig,
+    inference_desc$pct_maxt_sig,
+    holm_desc$pct_holm_sig
+  )
 )
 
 # Descriptive results ----------------------------------------------------
 
 k_per_spec <- vapply(
-    multi$fitl,
-    function(x) x$k,
-    numeric(1)
+  multi$fitl,
+  function(x) x$k,
+  numeric(1)
 )
 
 application_desc <- res$summary_table |>
-    summarise(
-        n_spec = n(),
-        min_g = min(estimate, na.rm = TRUE),
-        q1_g = quantile(estimate, 0.25, na.rm = TRUE),
-        median_g = median(estimate, na.rm = TRUE),
-        q3_g = quantile(estimate, 0.75, na.rm = TRUE),
-        max_g = max(estimate, na.rm = TRUE),
-        n_positive = sum(estimate > 0, na.rm = TRUE),
-        n_negative = sum(estimate < 0, na.rm = TRUE)
-    )
+  summarise(
+    n_spec = n(),
+    min_g = min(estimate, na.rm = TRUE),
+    q1_g = quantile(estimate, 0.25, na.rm = TRUE),
+    median_g = median(estimate, na.rm = TRUE),
+    q3_g = quantile(estimate, 0.75, na.rm = TRUE),
+    max_g = max(estimate, na.rm = TRUE),
+    n_positive = sum(estimate > 0, na.rm = TRUE),
+    n_negative = sum(estimate < 0, na.rm = TRUE)
+  )
 
 k_desc <- tibble(
-    k = k_per_spec
+  k = k_per_spec
 ) |>
-    summarise(
-        min_k = min(k),
-        q1_k = quantile(k, 0.25),
-        median_k = median(k),
-        q3_k = quantile(k, 0.75),
-        max_k = max(k)
-    )
+  summarise(
+    min_k = min(k),
+    q1_k = quantile(k, 0.25),
+    median_k = median(k),
+    q3_k = quantile(k, 0.75),
+    max_k = max(k)
+  )
 
 direction_sentence <- if (
-    application_desc$n_positive == application_desc$n_spec
+  application_desc$n_positive == application_desc$n_spec
 ) {
-    "All pooled effect estimates were positive."
-} else if (
-    application_desc$n_negative == application_desc$n_spec
-) {
-    "All pooled effect estimates were negative."
+  "All pooled effect estimates were positive."
+} else if (application_desc$n_negative == application_desc$n_spec) {
+  "All pooled effect estimates were negative."
 } else {
-    sprintf(
-        "%s of %s pooled effect estimates (%.1f%%) were positive.",
-        application_desc$n_positive,
-        application_desc$n_spec,
-        100 * application_desc$n_positive / application_desc$n_spec
-    )
+  sprintf(
+    "%s of %s pooled effect estimates (%.1f%%) were positive.",
+    application_desc$n_positive,
+    application_desc$n_spec,
+    100 * application_desc$n_positive / application_desc$n_spec
+  )
 }
 ```
 
@@ -990,175 +1049,175 @@ direction_sentence <- if (
 # Volcano ----------------------------------------------------------------
 
 vol <- res$summary_table |>
-    mutate(
-        sign = case_when(
-            p.adj <= 0.05 & p <= 0.05 ~ "after",
-            p.adj > 0.05 & p <= 0.05 ~ "before",
-            p > 0.05 ~ "never",
-            TRUE ~ NA_character_
-        )
-    ) |>
-    add_count(sign, name = "n_sign") |>
-    mutate(
-        percent = 100 * n_sign / n(),
-        sign = sprintf("%s (%s%%)", sign, round(percent))
-    ) |>
-    ggplot(aes(
-        x = estimate,
-        y = -log10(p.adj),
-        color = sign,
-        shape = sign
-    )) +
-    geom_point(
-        size = 3,
-        alpha = 0.5,
-        position = position_jitter(height = 0.02)
-    ) +
-    geom_hline(
-        yintercept = -log10(0.05),
-        lty = "dotted"
-    ) +
-    xlab("Hedges' g") +
-    ylab(latex2exp::TeX("$-\\log_{10} p$")) +
-    theme_bw(base_size = 15) +
-    labs(
-        color = latex2exp::TeX(r"($p \leq 0.05$ (maxT))"),
-        shape = latex2exp::TeX(r"($p \leq 0.05$ (maxT))")
-    ) +
-    guides(
-        color = guide_legend(
-            title.position = "top",
-            title.hjust = 0.5,
-            nrow = 1
-        ),
-        shape = guide_legend(
-            title.position = "top",
-            title.hjust = 0.5,
-            nrow = 1
-        )
-    ) +
-    scale_color_manual(
-        values = c(
-            "firebrick",
-            "grey60",
-            "black"
-        )
-    ) +
-    scale_shape_manual(
-        values = c(19, 16, 3)
-    ) +
-    theme(
-        aspect.ratio = 1,
-        legend.position = "bottom",
-        legend.box = "vertical",
-        plot.title = element_text(
-            size = 15,
-            hjust = 0.5
-        )
-    ) +
-    ggtitle("Volcano Plot")
+  mutate(
+    sign = case_when(
+      p.adj <= 0.05 & p <= 0.05 ~ "after",
+      p.adj > 0.05 & p <= 0.05 ~ "before",
+      p > 0.05 ~ "never",
+      TRUE ~ NA_character_
+    )
+  ) |>
+  add_count(sign, name = "n_sign") |>
+  mutate(
+    percent = 100 * n_sign / n(),
+    sign = sprintf("%s (%s%%)", sign, round(percent))
+  ) |>
+  ggplot(aes(
+    x = estimate,
+    y = -log10(p.adj),
+    color = sign,
+    shape = sign
+  )) +
+  geom_point(
+    size = 3,
+    alpha = 0.5,
+    position = position_jitter(height = 0.02)
+  ) +
+  geom_hline(
+    yintercept = -log10(0.05),
+    lty = "dotted"
+  ) +
+  xlab("Hedges' g") +
+  ylab(latex2exp::TeX("$-\\log_{10} p$")) +
+  theme_bw(base_size = 15) +
+  labs(
+    color = latex2exp::TeX(r"($p \leq 0.05$ (maxT))"),
+    shape = latex2exp::TeX(r"($p \leq 0.05$ (maxT))")
+  ) +
+  guides(
+    color = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1
+    ),
+    shape = guide_legend(
+      title.position = "top",
+      title.hjust = 0.5,
+      nrow = 1
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "firebrick",
+      "grey60",
+      "black"
+    )
+  ) +
+  scale_shape_manual(
+    values = c(19, 16, 3)
+  ) +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "bottom",
+    legend.box = "vertical",
+    plot.title = element_text(
+      size = 15,
+      hjust = 0.5
+    )
+  ) +
+  ggtitle("Volcano Plot")
 
 
 # Correlation matrix -----------------------------------------------------
 
 long <- as.data.frame(
-    as.table(cor(res$Tspace))
+  as.table(cor(res$Tspace))
 )
 
 names(long) <- c(
-    "var1",
-    "var2",
-    "cor"
+  "var1",
+  "var2",
+  "cor"
 )
 
 cplot <- long |>
-    mutate(
-        var1_num = as.integer(
-            factor(var1, levels = unique(var1))
-        ),
-        var2_num = as.integer(
-            factor(var2, levels = unique(var2))
-        )
-    ) |>
-    ggplot(aes(
-        x = var1_num,
-        y = var2_num,
-        fill = cor
-    )) +
-    geom_raster() +
-    scale_fill_viridis_c(
-        guide = guide_colorbar(
-            direction = "horizontal",
-            barwidth = unit(5, "cm"),
-            barheight = unit(0.5, "cm")
-        )
-    ) +
-    coord_equal(expand = FALSE) +
-    theme_void() +
-    theme(
-        legend.title = element_blank(),
-        legend.position = "bottom",
-        plot.title = element_text(
-            size = 15,
-            hjust = 0.5,
-            margin = margin(b = 8)
-        )
-    ) +
-    ggtitle("Correlation between test statistics")
+  mutate(
+    var1_num = as.integer(
+      factor(var1, levels = unique(var1))
+    ),
+    var2_num = as.integer(
+      factor(var2, levels = unique(var2))
+    )
+  ) |>
+  ggplot(aes(
+    x = var1_num,
+    y = var2_num,
+    fill = cor
+  )) +
+  geom_raster() +
+  scale_fill_viridis_c(
+    guide = guide_colorbar(
+      direction = "horizontal",
+      barwidth = unit(5, "cm"),
+      barheight = unit(0.5, "cm")
+    )
+  ) +
+  coord_equal(expand = FALSE) +
+  theme_void() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom",
+    plot.title = element_text(
+      size = 15,
+      hjust = 0.5,
+      margin = margin(b = 8)
+    )
+  ) +
+  ggtitle("Correlation between test statistics")
 
 
 # Density ----------------------------------------------------------------
 
 dplot <- long |>
-    filter(var1 != var2) |>
-    ggplot(aes(x = cor)) +
-    geom_density(
-        fill = "grey70",
-        alpha = 0.5
-    ) +
-    xlab(NULL) +
-    ylab(NULL) +
-    theme_bw(base_size = 15) +
-    theme(
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank()
-    )
+  filter(var1 != var2) |>
+  ggplot(aes(x = cor)) +
+  geom_density(
+    fill = "grey70",
+    alpha = 0.5
+  ) +
+  xlab(NULL) +
+  ylab(NULL) +
+  theme_bw(base_size = 15) +
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank()
+  )
 
 
 # Legends ----------------------------------------------------------------
 #
 
 leg_vol <- cowplot::get_legend(
-    vol +
-        theme(legend.position = "bottom")
+  vol +
+    theme(legend.position = "bottom")
 )
 
 leg_vol_centered <- cowplot::ggdraw() +
-    cowplot::draw_grob(
-        leg_vol,
-        x = 0.54,
-        hjust = 0.5
-    )
+  cowplot::draw_grob(
+    leg_vol,
+    x = 0.54,
+    hjust = 0.5
+  )
 
 leg_cor <- cowplot::get_legend(
-    cplot +
-        theme(
-            legend.position = "bottom"
-        )
+  cplot +
+    theme(
+      legend.position = "bottom"
+    )
 )
 
 
 # Remove legends ---------------------------------------------------------
 
 vol_noleg <- vol +
-    theme(
-        legend.position = "none"
-    )
+  theme(
+    legend.position = "none"
+  )
 
 cplot_noleg <- cplot +
-    theme(
-        legend.position = "none"
-    )
+  theme(
+    legend.position = "none"
+  )
 
 
 # Right side -------------------------------------------------------------
@@ -1169,50 +1228,48 @@ cplot_noleg <- cplot +
 # This avoids the empty vertical space caused by coord_equal()
 
 right <- cowplot::ggdraw() +
-    cowplot::draw_plot(
-        cplot_noleg,
-        x = 0.20,
-        y = 0.22,
-        width = 0.60,
-        height = 0.76
-    ) +
-    cowplot::draw_plot(
-        dplot,
-        x = 0.20,
-        y = 0.04,
-        width = 0.60,
-        height = 0.2
-    )
+  cowplot::draw_plot(
+    cplot_noleg,
+    x = 0.20,
+    y = 0.22,
+    width = 0.60,
+    height = 0.76
+  ) +
+  cowplot::draw_plot(
+    dplot,
+    x = 0.20,
+    y = 0.04,
+    width = 0.60,
+    height = 0.2
+  )
 
 # Main plots -------------------------------------------------------------
 
 top <- cowplot::plot_grid(
-    vol_noleg,
-    right,
-    nrow = 1,
-    rel_widths = c(1, 1)
+  vol_noleg,
+  right,
+  nrow = 1,
+  rel_widths = c(1, 1)
 )
 
 
 # Center correlation legend ---------------------------------------------
 
 leg_cor_centered <- cowplot::ggdraw() +
-    cowplot::draw_grob(
-        leg_cor,
-        x = 0.5,
-        hjust = 0.5
-    )
+  cowplot::draw_grob(
+    leg_cor,
+    x = 0.5,
+    hjust = 0.5
+  )
 
 
 # Legends row ------------------------------------------------------------
 
-bottom <- (
-    patchwork::wrap_elements(leg_vol_centered) |
-        patchwork::wrap_elements(leg_cor_centered)
-) +
-    plot_layout(
-        widths = c(1, 1)
-    )
+bottom <- (patchwork::wrap_elements(leg_vol_centered) |
+  patchwork::wrap_elements(leg_cor_centered)) +
+  plot_layout(
+    widths = c(1, 1)
+  )
 
 
 # Final ------------------------------------------------------------------
@@ -1237,6 +1294,7 @@ bottom <- (
             )
         )
     )
+  )
 ```
 
 
@@ -1253,20 +1311,16 @@ The dependence among specification-level statistics was heterogeneous (@fig-corr
 #| tbl-cap: "Specification-level inference across the CBT multiverse."
 
 inference_table |>
-    mutate(
-        `Percentage (%)` = sprintf(
-            "%.1f",
-            `Percentage (%)`
-        )
-    ) |>
-    knitr::kable(
-        align = c("l", "c", "c")
+  mutate(
+    `Percentage (%)` = sprintf(
+      "%.1f",
+      `Percentage (%)`
     )
+  ) |>
+  knitr::kable(
+    align = c("l", "c", "c")
+  )
 ```
-
-
-<!-- livio qui diceva di confrontare flip vs holm ma con i pvalue di uno degli altri metodi con cui abbiamo confrontato flip nella simulazione, per ora ho corretto i p grezzi di flip ma non dovrebbe cambiare tantissimo -->
-
 
 ```{r}
 #| label: fig-specification-curve
@@ -1277,158 +1331,158 @@ inference_table |>
 # Prepare specification-level results -----------------------------------
 
 spec_results <- res$summary_table |>
-    mutate(
-        inference = case_when(
-            p.adj <= 0.05 ~ "Significant after maxT",
-            p <= 0.05 ~ "Unadjusted only",
-            TRUE ~ "Not significant"
-        )
-    ) |>
-    arrange(estimate) |>
-    mutate(
-        specification = row_number()
+  mutate(
+    inference = case_when(
+      p.adj <= 0.05 ~ "Significant after maxT",
+      p <= 0.05 ~ "Unadjusted only",
+      TRUE ~ "Not significant"
     )
+  ) |>
+  arrange(estimate) |>
+  mutate(
+    specification = row_number()
+  )
 
 
 # Effect-size specification curve ---------------------------------------
 
 p_estimate <- spec_results |>
-    ggplot(
-        aes(
-            x = specification,
-            y = estimate,
-            color = inference,
-            shape = inference
-        )
-    ) +
-    geom_hline(
-        yintercept = 0,
-        linetype = "dotted",
-        linewidth = 0.5
-    ) +
-    geom_hline(
-        yintercept = median(spec_results$estimate),
-        linetype = "dashed",
-        linewidth = 0.5,
-        alpha = 0.6
-    ) +
-    geom_point(
-        size = 2,
-        alpha = 0.8
-    ) +
-    labs(
-        x = NULL,
-        y = "Pooled Hedges' g",
-        color = NULL,
-        shape = NULL
-    ) +
-    theme_bw(base_size = 14) +
-    theme(
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        legend.position = "top"
+  ggplot(
+    aes(
+      x = specification,
+      y = estimate,
+      color = inference,
+      shape = inference
     )
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dotted",
+    linewidth = 0.5
+  ) +
+  geom_hline(
+    yintercept = median(spec_results$estimate),
+    linetype = "dashed",
+    linewidth = 0.5,
+    alpha = 0.6
+  ) +
+  geom_point(
+    size = 2,
+    alpha = 0.8
+  ) +
+  labs(
+    x = NULL,
+    y = "Pooled Hedges' g",
+    color = NULL,
+    shape = NULL
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "top"
+  )
 
 
 # Analytical decisions --------------------------------------------------
 
 spec_decisions <- spec_results |>
-    transmute(
-        specification,
-        `Control condition` = recode(
-            control,
-            "waitlist" = "Waitlist",
-            "cau" = "Care as usual",
-            "all" = "Unrestricted"
-        ),
-        `Risk of bias` = recode(
-            rob,
-            "low_only" = "Low risk only",
-            "low_some_concern" = "Low risk / some concerns",
-            "all" = "Unrestricted"
-        ),
-        `Treatment format` = recode(
-            format,
-            "all" = "Unrestricted"
-        ),
-        `Outcome rater` = recode(
-    rating,
-    "self-report" = "Self-reported",
-    "clinician" = "Clinician-rated",
-    "all" = "Unrestricted"
-        ),
-        `Within-study correlation` = paste0(
-            "\u03c1 = ",
-            rho
-        ),
-        `Heterogeneity estimator` = tau_estimator
-    ) |>
-    pivot_longer(
-        -specification,
-        names_to = "decision",
-        values_to = "level"
-    ) |>
-    mutate(
-        decision = factor(
-            decision,
-            levels = c(
-                "Control condition",
-                "Risk of bias",
-                "Treatment format",
-                "Outcome rater",
-                "Within-study correlation",
-                "Heterogeneity estimator"
-            )
-        )
+  transmute(
+    specification,
+    `Control condition` = recode(
+      control,
+      "waitlist" = "Waitlist",
+      "cau" = "Care as usual",
+      "all" = "Unrestricted"
+    ),
+    `Risk of bias` = recode(
+      rob,
+      "low_only" = "Low risk only",
+      "low_some_concern" = "Low risk / some concerns",
+      "all" = "Unrestricted"
+    ),
+    `Treatment format` = recode(
+      format,
+      "all" = "Unrestricted"
+    ),
+    `Outcome rater` = recode(
+      rating,
+      "self-report" = "Self-reported",
+      "clinician" = "Clinician-rated",
+      "all" = "Unrestricted"
+    ),
+    `Within-study correlation` = paste0(
+      "\u03c1 = ",
+      rho
+    ),
+    `Heterogeneity estimator` = tau_estimator
+  ) |>
+  pivot_longer(
+    -specification,
+    names_to = "decision",
+    values_to = "level"
+  ) |>
+  mutate(
+    decision = factor(
+      decision,
+      levels = c(
+        "Control condition",
+        "Risk of bias",
+        "Treatment format",
+        "Outcome rater",
+        "Within-study correlation",
+        "Heterogeneity estimator"
+      )
     )
+  )
 
 
 p_decisions <- spec_decisions |>
-    ggplot(
-        aes(
-            x = specification,
-            y = level
-        )
-    ) +
-    geom_point(
-        size = 0.8,
-        alpha = 0.7
-    ) +
-    facet_grid(
-        decision ~ .,
-        scales = "free_y",
-        space = "free_y",
-        switch = "y"
-    ) +
-    labs(
-        x = "Specifications ordered by pooled effect",
-        y = NULL
-    ) +
-    theme_bw(base_size = 11) +
-    theme(
-        strip.placement = "outside",
-        strip.background = element_blank(),
-        strip.text.y.left = element_text(
-            angle = 0,
-            face = "bold"
-        ),
-        panel.spacing.y = unit(
-            0.15,
-            "lines"
-        ),
-        axis.text.y = element_text(
-            size = 8
-        )
+  ggplot(
+    aes(
+      x = specification,
+      y = level
     )
+  ) +
+  geom_point(
+    size = 0.8,
+    alpha = 0.7
+  ) +
+  facet_grid(
+    decision ~ .,
+    scales = "free_y",
+    space = "free_y",
+    switch = "y"
+  ) +
+  labs(
+    x = "Specifications ordered by pooled effect",
+    y = NULL
+  ) +
+  theme_bw(base_size = 11) +
+  theme(
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(
+      angle = 0,
+      face = "bold"
+    ),
+    panel.spacing.y = unit(
+      0.15,
+      "lines"
+    ),
+    axis.text.y = element_text(
+      size = 8
+    )
+  )
 
 
 # Combine panels ---------------------------------------------------------
 
 p_estimate /
-    p_decisions +
-    plot_layout(
-        heights = c(2.2, 3)
-    )
+  p_decisions +
+  plot_layout(
+    heights = c(2.2, 3)
+  )
 ```
 
 
@@ -1442,112 +1496,112 @@ p_estimate /
 # Pairwise correlations --------------------------------------------------
 
 cor_long <- as.data.frame(
-    as.table(cor(res$Tspace))
+  as.table(cor(res$Tspace))
 )
 
 names(cor_long) <- c(
-    "var1",
-    "var2",
-    "cor"
+  "var1",
+  "var2",
+  "cor"
 )
 
 cor_long <- cor_long |>
-    mutate(
-        var1_num = as.integer(
-            factor(
-                var1,
-                levels = unique(var1)
-            )
-        ),
-        var2_num = as.integer(
-            factor(
-                var2,
-                levels = unique(var2)
-            )
-        )
+  mutate(
+    var1_num = as.integer(
+      factor(
+        var1,
+        levels = unique(var1)
+      )
+    ),
+    var2_num = as.integer(
+      factor(
+        var2,
+        levels = unique(var2)
+      )
     )
+  )
 
 
 # Correlation matrix -----------------------------------------------------
 
 p_cor_matrix <- cor_long |>
-    ggplot(
-        aes(
-            x = var1_num,
-            y = var2_num,
-            fill = cor
-        )
-    ) +
-    geom_raster() +
-    scale_fill_viridis_c(
-        limits = c(-1, 1),
-        guide = guide_colorbar(
-            title = "Correlation",
-            direction = "horizontal",
-            barwidth = unit(5, "cm"),
-            barheight = unit(0.45, "cm")
-        )
-    ) +
-    coord_equal(
-        expand = FALSE
-    ) +
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Pairwise correlation matrix"
-    ) +
-    theme_void() +
-    theme(
-        legend.position = "bottom",
-        plot.title = element_text(
-            hjust = 0.5,
-            size = 14
-        )
+  ggplot(
+    aes(
+      x = var1_num,
+      y = var2_num,
+      fill = cor
     )
+  ) +
+  geom_raster() +
+  scale_fill_viridis_c(
+    limits = c(-1, 1),
+    guide = guide_colorbar(
+      title = "Correlation",
+      direction = "horizontal",
+      barwidth = unit(5, "cm"),
+      barheight = unit(0.45, "cm")
+    )
+  ) +
+  coord_equal(
+    expand = FALSE
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Pairwise correlation matrix"
+  ) +
+  theme_void() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(
+      hjust = 0.5,
+      size = 14
+    )
+  )
 
 
 # Correlation density ----------------------------------------------------
 
 p_cor_density <- cor_long |>
-    filter(
-        var1_num < var2_num
-    ) |>
-    ggplot(
-        aes(
-            x = cor
-        )
-    ) +
-    geom_density(
-        fill = "grey70",
-        alpha = 0.5
-    ) +
-    geom_vline(
-        xintercept = cor_desc$median_cor,
-        linetype = "dashed",
-        linewidth = 0.6
-    ) +
-    labs(
-        x = "Pairwise correlation",
-        y = "Density",
-        title = "Distribution of pairwise correlations"
-    ) +
-    theme_bw(
-        base_size = 14
-    ) +
-    theme(
-        plot.title = element_text(
-            hjust = 0.5
-        )
+  filter(
+    var1_num < var2_num
+  ) |>
+  ggplot(
+    aes(
+      x = cor
     )
+  ) +
+  geom_density(
+    fill = "grey70",
+    alpha = 0.5
+  ) +
+  geom_vline(
+    xintercept = cor_desc$median_cor,
+    linetype = "dashed",
+    linewidth = 0.6
+  ) +
+  labs(
+    x = "Pairwise correlation",
+    y = "Density",
+    title = "Distribution of pairwise correlations"
+  ) +
+  theme_bw(
+    base_size = 14
+  ) +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5
+    )
+  )
 
 
 # Combine ---------------------------------------------------------------
 
 p_cor_matrix +
-    p_cor_density +
-    plot_layout(
-        widths = c(1.1, 1)
-    )
+  p_cor_density +
+  plot_layout(
+    widths = c(1.1, 1)
+  )
 ```
 
 
@@ -1561,16 +1615,11 @@ These results should therefore be interpreted primarily as a demonstration of th
 
 # Limitations and future perspectives
 
-<!-- TODO magari inserire un cenno ai test multivariati con più parametri tipo malanohbis che de santis comunque cita, per non appesantire li ho tolti -->
-
 The main limitation of the present extension is the assumption that the meta-analytic dataset consists of independent studies contributing a single effect size to each specification. In practice, meta-analytic data often contain dependent effect sizes arising from multilevel or multivariate structures [@Van-den-Noortgate2013-lu; @Cheung2013-hw]. The current implementation therefore requires dependent effects to be reduced to one study-level estimate before applying PIMMA, as in our application. Recent extensions of the flipscores framework have addressed nested and crossed random-effects structures by adapting the resampling scheme to the dependence among observations [@Andreella2025-nd; @Vesely2026-zj]. Extending PIMMA to these more complex meta-analytic structures is an important direction for future work.
 
 A second limitation concerns the construction of the multiverse itself. PIMMA provides inference conditional on the specifications included, but does not determine which analytical choices should be considered reasonable or equally defensible. Their selection therefore remains a substantive and methodological judgment. In our application, we deliberately considered a limited set of plausible alternatives because the goal was methodological illustration rather than an exhaustive clinical assessment of CBT.
 
 Finally, the proposed sign-flipping tests are asymptotically valid under the regularity conditions described above. Their finite-sample performance therefore remains important, particularly for meta-analyses with few studies or highly unbalanced study contributions. Our simulation study provides initial evidence of adequate Type I error control across the conditions considered, but further work is needed to evaluate performance under more complex forms of heterogeneity, model misspecification, and dependence.
-
-<!-- TODO magari fare un cenno a come sarebbe l'implementazione, tipo che tau2_1 e tau2_2 nel caso di un three level model diventano due nuisance parameters -->
-
 
 # Conclusion
 

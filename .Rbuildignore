@@ -8,5 +8,4 @@
 ^\.agents$
 ^\.codex$
 ^\.quarto$
-^RIASSUNTO_VALIDAZIONE_MATEMATICA_FLIPMETA\.txt$
-^cbt-dep-clean\.rds$
+^flipmeta.slurm$
