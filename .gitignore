@@ -10,3 +10,4 @@ codex/
 .rsync-backup/
 res*.rds
 *_cache/
+docs

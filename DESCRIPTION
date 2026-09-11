@@ -11,7 +11,7 @@ Description: Performs robust score tests for univariate meta-analytic and
     models and joint inference across related model specifications, including
     multiplicity-adjusted p-values.
 License: MIT + file LICENSE
-URL: https://github.com/filippogambarota/flipmeta
+URL: https://github.com/filippogambarota/flipmeta, http://gfil.es/flipmeta/
 BugReports: https://github.com/filippogambarota/flipmeta/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -10,3 +10,6 @@
 ^\.quarto$
 ^\.github$
 ^flipmeta.slurm$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
