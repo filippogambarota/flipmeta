@@ -8,4 +8,5 @@
 ^\.agents$
 ^\.codex$
 ^\.quarto$
+^\.github$
 ^flipmeta.slurm$
