@@ -1,8 +1,0 @@
-project:
-  title: "pimma"
-  render:
-    - paper/pimma.qmd
-
-bibliography:
-  - "https://raw.githubusercontent.com/filippogambarota/bib-database/main/references.bib"
-  - "paper/pimma.bib"
