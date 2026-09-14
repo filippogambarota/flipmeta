@@ -1,6 +1,6 @@
 Package: flipmeta
 Title: Robust Score Tests for Meta-Analysis Using Sign Flips
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     c(person("Filippo", "Gambarota", email = "filippo.gambarota@unipd.it", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-6666-1747")),
       person("Livio", "Finos", email = "livio.finos@unipd.it", role = c("ctb"), comment = c(ORCID = "0000-0003-3181-8078")),
