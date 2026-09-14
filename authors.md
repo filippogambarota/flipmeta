@@ -14,7 +14,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/filippogambarota/flipmeta/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/filippogambarota/flipmeta/blob/v0.1.1/DESCRIPTION)
 
 Gambarota F (2026). *flipmeta: Robust Score Tests for Meta-Analysis
 Using Sign Flips*. R package version 0.1.1,
