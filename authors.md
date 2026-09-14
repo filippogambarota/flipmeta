@@ -17,13 +17,13 @@ Source:
 [`DESCRIPTION`](https://github.com/filippogambarota/flipmeta/blob/main/DESCRIPTION)
 
 Gambarota F (2026). *flipmeta: Robust Score Tests for Meta-Analysis
-Using Sign Flips*. R package version 0.1.0,
+Using Sign Flips*. R package version 0.1.1,
 <https://github.com/filippogambarota/flipmeta>.
 
     @Manual{,
       title = {flipmeta: Robust Score Tests for Meta-Analysis Using Sign Flips},
       author = {Filippo Gambarota},
       year = {2026},
-      note = {R package version 0.1.0},
+      note = {R package version 0.1.1},
       url = {https://github.com/filippogambarota/flipmeta},
     }
